@@ -1,7 +1,7 @@
 # Gleam Zipper
 
-[![Package Version](https://img.shields.io/hexpm/v/gleam_zipper)](https://hex.pm/packages/gleam_zipper)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/zipper/)
+[![Package Version](https://img.shields.io/hexpm/v/gleam_zipper)](https://hex.pm/packages/gleamy_zipper)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/gleamy_zipper/)
 [![Build Status](https://github.com/Frid-Yuandu/zipper/workflows/test/badge.svg)](https://github.com/Frid-Yuandu/zipper/actions)
 
 A functional zipper library for Gleam. Zippers provide a way to navigate and update immutable data structures in an efficient and elegant way.
