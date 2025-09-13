@@ -1,5 +1,7 @@
 import gleam/option.{type Option, None, Some}
 import gleam/result
+import gleeunit/should
+import qcheck
 import zipper/list
 
 // Main module documentation example
@@ -170,4 +172,67 @@ pub fn doc_example_go_right_test() {
   let z = list.from_list([1, 2, 3])
   let assert Ok(right_z) = list.go_right(z)
   assert list.get(right_z) == Ok(2)
+}
+
+//
+// property-based testing
+//
+
+pub fn round_trip_conversion_invariant__test() {
+  let list_length = qcheck.small_non_negative_int()
+  let elements = qcheck.uniform_int()
+  use list <- qcheck.given(qcheck.generic_list(elements, list_length))
+  let new_list = list.from_list(list) |> list.to_list()
+  assert list == new_list
+}
+
+pub fn right_navigation_invertibility_on_intermediate_elements__test() {
+  let list_length = qcheck.small_strictly_positive_int()
+  let elements = qcheck.uniform_int()
+  // generate a non-empty list avoiding insertion changes the focus
+  use list <- qcheck.given(qcheck.generic_list(elements, list_length))
+  use inserted_value <- qcheck.given(qcheck.uniform_int())
+  let zipper = list.from_list(list) |> list.insert_right(inserted_value)
+  let assert Ok(navigated_zipper) =
+    zipper |> list.go_right() |> result.try(list.go_left)
+  assert navigated_zipper == zipper
+}
+
+pub fn left_navigation_invertibility_on_intermediate_elements__test() {
+  let list_length = qcheck.small_strictly_positive_int()
+  let elements = qcheck.uniform_int()
+  // generate a non-empty list avoiding insertion changes the focus
+  use list <- qcheck.given(qcheck.generic_list(elements, list_length))
+  use inserted_value <- qcheck.given(qcheck.uniform_int())
+  let zipper = list.from_list(list) |> list.insert_left(inserted_value)
+  let assert Ok(navigated_zipper) =
+    zipper |> list.go_left() |> result.try(list.go_right)
+  assert navigated_zipper == zipper
+}
+
+pub fn right_navigation_erroneous_on_rightmost_elements__test() {
+  let list_length = qcheck.small_non_negative_int()
+  let elements = qcheck.uniform_int()
+  use list <- qcheck.given(qcheck.generic_list(elements, list_length))
+
+  let rightmost_zipper = list.from_list(list) |> go_to_the_rightmost
+  should.be_error(list.go_right(rightmost_zipper))
+}
+
+fn go_to_the_rightmost(zipper: list.Zipper(a)) -> list.Zipper(a) {
+  case list.is_rightmost(zipper) {
+    True -> zipper
+    False -> {
+      let assert Ok(zipper) = list.go_right(zipper)
+      go_to_the_rightmost(zipper)
+    }
+  }
+}
+
+pub fn left_navigation_erroneous_on_leftmost_elements__test() {
+  let list_length = qcheck.small_non_negative_int()
+  let elements = qcheck.uniform_int()
+  use list <- qcheck.given(qcheck.generic_list(elements, list_length))
+  let zipper = list.from_list(list)
+  should.be_error(list.go_left(zipper))
 }
