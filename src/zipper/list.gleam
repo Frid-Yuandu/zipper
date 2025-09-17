@@ -113,8 +113,7 @@ pub fn get(zipper: Zipper(a)) -> Result(a, Nil) {
 pub fn insert_left(zipper: Zipper(a), value: a) -> Zipper(a) {
   case zipper {
     Zipper(thread: [], focus: []) -> Zipper(thread: [], focus: [value])
-    Zipper(thread: thread, focus: focus) ->
-      Zipper(thread: [value, ..thread], focus: focus)
+    Zipper(thread:, focus:) -> Zipper(thread: [value, ..thread], focus:)
   }
 }
 
@@ -208,20 +207,35 @@ pub fn upsert(zipper: Zipper(a), updater: fn(Option(a)) -> a) -> Zipper(a) {
   }
 }
 
-/// Delete the current focus value from the zipper.
+/// Delete the current focus element from the zipper.
 ///
-/// Returns a new zipper with focus moved to the next element, or `Error(Nil)` if empty.
+/// The focus moves to the right element if it exists, otherwise to the left
+/// element.
+///
+/// Returns `Ok(zipper)` with the focus moved to the new location.
+/// Returns `Error(Nil)` if the zipper is empty or contains only one element.
+///
+/// This operation is prevented when the zipper has only one element to ensure
+/// the zipper never becomes empty without a focus.
 ///
 /// ## Examples
 /// ```gleam
+/// // Successful deletion with multiple elements
 /// from_list([1, 2, 3])
 /// |> delete()
 /// |> to_list
 /// // => [2, 3]
+///
+/// // Error when trying to delete the only element
+/// from_list([42])
+/// |> delete()
+/// // => Error(Nil)
 /// ```
 pub fn delete(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
   case zipper {
-    Zipper(focus: [], ..) -> Error(Nil)
+    Zipper(focus: [], ..) | Zipper(thread: [], focus: [_]) -> Error(Nil)
+    Zipper(thread: [value, ..thread], focus: [_]) ->
+      Ok(Zipper(thread:, focus: [value]))
     Zipper(_, focus: [_, ..focus]) -> Ok(Zipper(..zipper, focus:))
   }
 }
@@ -256,8 +270,8 @@ pub fn is_empty(zipper: Zipper(a)) -> Bool {
 /// // => False
 /// ```
 pub fn is_leftmost(zipper: Zipper(a)) -> Bool {
-  case zipper {
-    Zipper(thread: [], ..) -> True
+  case zipper.thread {
+    [] -> True
     _ -> False
   }
 }
@@ -275,8 +289,8 @@ pub fn is_leftmost(zipper: Zipper(a)) -> Bool {
 /// // => False
 /// ```
 pub fn is_rightmost(zipper: Zipper(a)) -> Bool {
-  case zipper {
-    Zipper(focus: [], ..) | Zipper(focus: [_], ..) -> True
+  case zipper.focus {
+    [] | [_] -> True
     _ -> False
   }
 }
@@ -314,7 +328,7 @@ pub fn go_left(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
 /// ```
 pub fn go_right(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
   case zipper {
-    Zipper(focus: [], ..) -> Error(Nil)
+    Zipper(focus: [], ..) | Zipper(focus: [_], ..) -> Error(Nil)
     Zipper(focus: [value, ..focus], thread:) ->
       Ok(Zipper(thread: [value, ..thread], focus:))
   }
