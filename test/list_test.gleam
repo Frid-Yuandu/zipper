@@ -377,12 +377,12 @@ pub fn delete_from_empty_list_is_an_error_test() {
   zlist.delete(zipper) |> should.be_error
 }
 
-/// Deleting an element from a non-empty list always reduces its size by one.
-/// For any non-empty list, the length of the list after deleting an element should be the original length minus one.
+/// Deleting an element from a non-empty list with at least two elements reduces its size by one.
+/// For any list with at least two elements, the length of the list after deleting an element should be the original length minus one.
 ///
-/// Formula: $\forall l: \text{List}, l \neq [] \Rightarrow \text{length}(\text{to\_list}(\text{delete}(\text{from\_list}(l)))) = \text{length}(l) - 1$
+/// Formula: $\forall l: \text{List}, |l| \geq 2 \Rightarrow \text{length}(\text{to\_list}(\text{delete}(\text{from\_list}(l)))) = \text{length}(l) - 1$
 pub fn delete_reduces_list_size_by_one_test() {
-  use original_list <- qcheck.given(non_empty_integer_list())
+  use original_list <- qcheck.given(list_of_at_least_two_integers())
   let original_size = list.length(original_list)
 
   let assert Ok(deleted_zipper) = zlist.from_list(original_list) |> zlist.delete
@@ -391,17 +391,15 @@ pub fn delete_reduces_list_size_by_one_test() {
   assert new_size == original_size - 1
 }
 
-/// Deleting the only element in a list results in an empty list.
-/// For any single-element list, deleting that element should result in an empty list.
+/// Deleting the only element in a list results in an error.
+/// For any single-element list, deleting that element should result in an error to prevent having an empty zipper with no focus.
 ///
-/// Formula: $\forall x: a \Rightarrow \text{to\_list}(\text{delete}(\text{from\_list}([x]))) = []$
-pub fn delete_the_only_element_results_in_an_empty_list_test() {
+/// Formula: $\forall x: a \Rightarrow \text{delete}(\text{from\_list}([x])) \; \text{is} \; \text{Error}$
+pub fn delete_the_only_element_is_an_error_test() {
   use value <- qcheck.given(qcheck.uniform_int())
+  let zipper = zlist.from_list([value])
 
-  let assert Ok(deleted_zipper) = zlist.from_list([value]) |> zlist.delete
-  let new_list = deleted_zipper |> zlist.to_list
-
-  assert new_list == []
+  assert zlist.delete(zipper) == Error(Nil)
 }
 
 /// When deleting an element that is not the rightmost, the focus should move to the element that was originally to its right.
