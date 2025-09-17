@@ -223,7 +223,7 @@ pub fn go_right_when_rightmost_is_an_error_test() {
   use list <- qcheck.given(maybe_empty_integer_list())
 
   let rightmost_zipper = zlist.from_list(list) |> go_to_the_rightmost
-  should.be_error(zlist.go_right(rightmost_zipper))
+  assert zlist.go_right(rightmost_zipper) == Error(Nil)
 }
 
 fn go_to_the_rightmost(zipper: zlist.Zipper(a)) -> zlist.Zipper(a) {
@@ -243,7 +243,7 @@ fn go_to_the_rightmost(zipper: zlist.Zipper(a)) -> zlist.Zipper(a) {
 pub fn go_left_when_leftmost_is_an_error_test() {
   use list <- qcheck.given(maybe_empty_integer_list())
   let zipper = zlist.from_list(list)
-  should.be_error(zlist.go_left(zipper))
+  assert zlist.go_left(zipper) == Error(Nil)
 }
 
 /// Setting a value makes it immediately visible.
@@ -374,7 +374,7 @@ pub fn insert_right_on_non_empty_preserves_focus_test() {
 /// Formula: $\text{delete}(\text{from\_list}([])) \; \text{is} \; \text{Error}$
 pub fn delete_from_empty_list_is_an_error_test() {
   let zipper = zlist.from_list([])
-  zlist.delete(zipper) |> should.be_error
+  assert zlist.delete(zipper) == Error(Nil)
 }
 
 /// Deleting an element from a non-empty list with at least two elements reduces its size by one.
@@ -438,7 +438,7 @@ pub fn delete_at_rightmost_moves_focus_to_the_left_test() {
 /// Formula: $\text{get}(\text{from\_list}([])) \; \text{is} \; \text{Error}$
 pub fn get_from_empty_list_is_error_test() {
   let zipper = zlist.from_list([])
-  zlist.get(zipper) |> should.be_error
+  assert zlist.get(zipper) == Error(Nil)
 }
 
 /// Getting from a non-empty zipper should return the focused value.
