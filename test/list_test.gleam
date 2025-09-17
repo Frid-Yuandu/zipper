@@ -1,7 +1,6 @@
 import gleam/list
-import gleam/option.{type Option, None, Some}
+import gleam/option.{None, Some}
 import gleam/result
-import gleeunit/should
 import qcheck
 import zipper/list as zlist
 
@@ -24,6 +23,8 @@ pub fn doc_example_comprehensive_operations_test() {
 // property-based testing
 //
 
+// test for `new`
+
 /// Creating a new zipper results in an empty zipper.
 /// The new() function should create a zipper with no elements.
 ///
@@ -32,6 +33,8 @@ pub fn new_results_in_empty_zipper_test() {
   let z = zlist.new()
   assert zlist.to_list(z) == []
 }
+
+// test for type conversions
 
 /// Round-trip conversion preserves list identity.
 /// Converting a list to a zipper and back to a list should result in the original list.
@@ -42,6 +45,8 @@ pub fn round_trip_conversion_identity_test() {
   let new_list = zlist.from_list(list) |> zlist.to_list()
   assert list == new_list
 }
+
+// tests for `go_right`
 
 /// Moving right then left returns to the original position.
 /// For any list with at least two elements, going right then left should return to the original zipper state.
@@ -56,6 +61,19 @@ pub fn go_right_is_invertible_test() {
   assert navigated_zipper == zipper
 }
 
+/// Moving right when at the rightmost position should fail.
+/// For any zipper that is at the rightmost position, attempting to move right should result in an error.
+///
+/// Formula: $\forall z: \text{ZipperList} \; \text{where} \; \text{is\_rightmost}(z) \Rightarrow \text{go\_right}(z) \; \text{is} \; \text{Error}$
+pub fn go_right_when_rightmost_is_an_error_test() {
+  use list <- qcheck.given(maybe_empty_integer_list())
+
+  let rightmost_zipper = zlist.from_list(list) |> go_to_the_rightmost
+  assert zlist.go_right(rightmost_zipper) == Error(Nil)
+}
+
+// tests for `go_left`
+
 /// Moving left then right returns to the original position.
 /// For any list with at least two elements, going left then right from the rightmost position should return to the original zipper state.
 ///
@@ -69,27 +87,6 @@ pub fn go_left_is_invertible_test() {
   assert navigated_zipper == zipper
 }
 
-/// Moving right when at the rightmost position should fail.
-/// For any zipper that is at the rightmost position, attempting to move right should result in an error.
-///
-/// Formula: $\forall z: \text{ZipperList} \; \text{where} \; \text{is\_rightmost}(z) \Rightarrow \text{go\_right}(z) \; \text{is} \; \text{Error}$
-pub fn go_right_when_rightmost_is_an_error_test() {
-  use list <- qcheck.given(maybe_empty_integer_list())
-
-  let rightmost_zipper = zlist.from_list(list) |> go_to_the_rightmost
-  assert zlist.go_right(rightmost_zipper) == Error(Nil)
-}
-
-fn go_to_the_rightmost(zipper: zlist.Zipper(a)) -> zlist.Zipper(a) {
-  case zlist.is_rightmost(zipper) {
-    True -> zipper
-    False -> {
-      let assert Ok(zipper) = zlist.go_right(zipper)
-      go_to_the_rightmost(zipper)
-    }
-  }
-}
-
 /// Moving left when at the leftmost position should fail.
 /// For any zipper that is at the leftmost position, attempting to move left should result in an error.
 ///
@@ -99,6 +96,8 @@ pub fn go_left_when_leftmost_is_an_error_test() {
   let zipper = zlist.from_list(list)
   assert zlist.go_left(zipper) == Error(Nil)
 }
+
+// tests for `set`
 
 /// Setting a value makes it immediately visible.
 /// When setting a new value in a non-empty zipper, the get function should return that same value.
@@ -113,6 +112,22 @@ pub fn set_is_immediately_visible_test() {
   assert got_value == new_value
 }
 
+/// Set operation preserves zipper length.
+/// For any non-empty list, setting a value should not change the length.
+///
+/// Formula: $\forall l: \text{List}, l \neq [], v: a \Rightarrow \text{length}(\text{to\_list}(\text{set}(\text{from\_list}(l), v))) = \text{length}(l)$
+pub fn set_preserves_length_test() {
+  use list <- qcheck.given(non_empty_integer_list())
+  use value <- qcheck.given(qcheck.uniform_int())
+  let original_length = list.length(list)
+  let assert Ok(new_zipper) = zlist.from_list(list) |> zlist.set(value)
+  let new_length = new_zipper |> zlist.to_list |> list.length
+
+  assert new_length == original_length
+}
+
+// tests for `update`
+
 /// Updating a value applies the function correctly.
 /// When updating a zipper with a function, the get function should return the result of applying that function to the original value.
 ///
@@ -125,6 +140,22 @@ pub fn update_is_immediately_visible_test() {
     zlist.from_list([value]) |> zlist.update(updater) |> result.try(zlist.get)
   assert updated_value == updater(value)
 }
+
+/// Update operation preserves zipper length.
+/// For any non-empty list, updating a value should not change the length.
+///
+/// Formula: $\forall l: \text{List}, l \neq [], f: a \rightarrow a \Rightarrow \text{length}(\text{to\_list}(\text{update}(\text{from\_list}(l), f))) = \text{length}(l)$
+pub fn update_preserves_length_test() {
+  use list <- qcheck.given(non_empty_integer_list())
+  let updater = fn(x) { x * 2 }
+  let original_length = list.length(list)
+  let assert Ok(new_zipper) = zlist.from_list(list) |> zlist.update(updater)
+  let new_length = new_zipper |> zlist.to_list |> list.length
+
+  assert new_length == original_length
+}
+
+// tests for `upsert`
 
 /// Upsert on existing element applies the update function.
 /// When upserting on a non-empty zipper, the function should be applied to the existing value (Some(x)).
@@ -162,6 +193,27 @@ pub fn upsert_on_empty_inserts_given_value_test() {
   assert upserted_list == [value]
 }
 
+/// Upsert on existing element preserves zipper length.
+/// For any non-empty list, upserting with a value should not change the length.
+///
+/// Formula: $\forall l: \text{List}, l \neq [], f: \text{Option}(a) \rightarrow a \Rightarrow \text{length}(\text{to\_list}(\text{upsert}(\text{from\_list}(l), f))) = \text{length}(l)$
+pub fn upsert_on_existing_preserves_length_test() {
+  use list <- qcheck.given(non_empty_integer_list())
+  let upserter = fn(x) {
+    case x {
+      Some(x) -> x * 2
+      None -> panic as "should not be reach"
+    }
+  }
+  let original_length = list.length(list)
+  let new_zipper = zlist.from_list(list) |> zlist.upsert(upserter)
+  let new_length = new_zipper |> zlist.to_list |> list.length
+
+  assert new_length == original_length
+}
+
+// tests for `insert_left`
+
 /// Insert left makes the value immediately visible to the left.
 /// When inserting a value to the left, moving left should reveal that same value.
 ///
@@ -175,21 +227,6 @@ pub fn insert_left_is_immediately_visible_test() {
     |> zlist.insert_left(value)
     |> zlist.go_left
     |> result.try(zlist.get)
-
-  assert got_value == value
-}
-
-/// Insert right makes the value immediately visible to the right.
-/// When inserting a value to the right, moving right should reveal that same value.
-///
-/// Formula: $\forall l: \text{List}, l \neq [], v: a \Rightarrow \text{get}(\text{go\_right}(\text{insert\_right}(\text{from\_list}(l), v))) = v$
-pub fn insert_right_is_immediately_visible_test() {
-  use list <- qcheck.given(non_empty_integer_list())
-  use value <- qcheck.given(qcheck.uniform_int())
-
-  let assert Ok(zipper) =
-    zlist.from_list(list) |> zlist.insert_right(value) |> zlist.go_right
-  let assert Ok(got_value) = zlist.get(zipper)
 
   assert got_value == value
 }
@@ -208,6 +245,49 @@ pub fn insert_left_on_non_empty_preserves_focus_test() {
   assert got_value == original_value
 }
 
+/// Inserting left on an empty list should focus on the inserted element.
+/// When inserting a value to the left of an empty zipper, the get operation should return that value.
+///
+/// Formula: $\forall v: a \Rightarrow \text{get}(\text{insert\_left}(\text{from\_list}([]), v)) = v$
+pub fn insert_left_on_empty_list_focuses_on_inserted_element_test() {
+  use value <- qcheck.given(qcheck.uniform_int())
+  let zipper = zlist.from_list([]) |> zlist.insert_left(value)
+  let assert Ok(got_value) = zlist.get(zipper)
+
+  assert got_value == value
+}
+
+/// Insert left increases zipper length by one.
+/// For any list, inserting a value to the left should increase the length by one.
+///
+/// Formula: $\forall l: \text{List}, v: a \Rightarrow \text{length}(\text{to\_list}(\text{insert\_left}(\text{from\_list}(l), v))) = \text{length}(l) + 1$
+pub fn insert_left_increases_length_by_one_test() {
+  use list <- qcheck.given(maybe_empty_integer_list())
+  use value <- qcheck.given(qcheck.uniform_int())
+  let original_length = list.length(list)
+  let new_zipper = zlist.from_list(list) |> zlist.insert_left(value)
+  let new_length = new_zipper |> zlist.to_list |> list.length
+
+  assert new_length == original_length + 1
+}
+
+// tests for `insert_right`
+
+/// Insert right makes the value immediately visible to the right.
+/// When inserting a value to the right, moving right should reveal that same value.
+///
+/// Formula: $\forall l: \text{List}, l \neq [], v: a \Rightarrow \text{get}(\text{go\_right}(\text{insert\_right}(\text{from\_list}(l), v))) = v$
+pub fn insert_right_is_immediately_visible_test() {
+  use list <- qcheck.given(non_empty_integer_list())
+  use value <- qcheck.given(qcheck.uniform_int())
+
+  let assert Ok(zipper) =
+    zlist.from_list(list) |> zlist.insert_right(value) |> zlist.go_right
+  let assert Ok(got_value) = zlist.get(zipper)
+
+  assert got_value == value
+}
+
 /// Insert right on non-empty zipper preserves the original focus.
 /// When inserting a value to the right of a non-empty zipper, the focus should remain on the original element.
 ///
@@ -221,6 +301,34 @@ pub fn insert_right_on_non_empty_preserves_focus_test() {
 
   assert got_value == original_value
 }
+
+/// Inserting right on an empty list should focus on the inserted element.
+/// When inserting a value to the right of an empty zipper, the get operation should return that value.
+///
+/// Formula: $\forall v: a \Rightarrow \text{get}(\text{insert\_right}(\text{from\_list}([]), v)) = v$
+pub fn insert_right_on_empty_list_focuses_on_inserted_element_test() {
+  use value <- qcheck.given(qcheck.uniform_int())
+  let zipper = zlist.from_list([]) |> zlist.insert_right(value)
+  let assert Ok(got_value) = zlist.get(zipper)
+
+  assert got_value == value
+}
+
+/// Insert right increases zipper length by one.
+/// For any list, inserting a value to the right should increase the length by one.
+///
+/// Formula: $\forall l: \text{List}, v: a \Rightarrow \text{length}(\text{to\_list}(\text{insert\_right}(\text{from\_list}(l), v))) = \text{length}(l) + 1$
+pub fn insert_right_increases_length_by_one_test() {
+  use list <- qcheck.given(maybe_empty_integer_list())
+  use value <- qcheck.given(qcheck.uniform_int())
+  let original_length = list.length(list)
+  let new_zipper = zlist.from_list(list) |> zlist.insert_right(value)
+  let new_length = new_zipper |> zlist.to_list |> list.length
+
+  assert new_length == original_length + 1
+}
+
+// tests for `delete`
 
 /// Deleting from an empty list should always result in an error.
 /// When attempting to delete from an empty zipper, the operation should fail.
@@ -286,6 +394,8 @@ pub fn delete_at_rightmost_moves_focus_to_the_left_test() {
   assert new_focus_value == expected_focus_value
 }
 
+// tests for `get`
+
 /// Getting from an empty zipper should always result in an error.
 /// For any attempt to get a value from an empty zipper, the operation should fail.
 ///
@@ -308,104 +418,7 @@ pub fn get_from_non_empty_list_returns_value_test() {
   assert got_value == expected_value
 }
 
-/// Inserting left on an empty list should focus on the inserted element.
-/// When inserting a value to the left of an empty zipper, the get operation should return that value.
-///
-/// Formula: $\forall v: a \Rightarrow \text{get}(\text{insert\_left}(\text{from\_list}([]), v)) = v$
-pub fn insert_left_on_empty_list_focuses_on_inserted_element_test() {
-  use value <- qcheck.given(qcheck.uniform_int())
-  let zipper = zlist.from_list([]) |> zlist.insert_left(value)
-  let assert Ok(got_value) = zlist.get(zipper)
-
-  assert got_value == value
-}
-
-/// Inserting right on an empty list should focus on the inserted element.
-/// When inserting a value to the right of an empty zipper, the get operation should return that value.
-///
-/// Formula: $\forall v: a \Rightarrow \text{get}(\text{insert\_right}(\text{from\_list}([]), v)) = v$
-pub fn insert_right_on_empty_list_focuses_on_inserted_element_test() {
-  use value <- qcheck.given(qcheck.uniform_int())
-  let zipper = zlist.from_list([]) |> zlist.insert_right(value)
-  let assert Ok(got_value) = zlist.get(zipper)
-
-  assert got_value == value
-}
-
-/// Insert left increases zipper length by one.
-/// For any list, inserting a value to the left should increase the length by one.
-///
-/// Formula: $\forall l: \text{List}, v: a \Rightarrow \text{length}(\text{to\_list}(\text{insert\_left}(\text{from\_list}(l), v))) = \text{length}(l) + 1$
-pub fn insert_left_increases_length_by_one_test() {
-  use list <- qcheck.given(maybe_empty_integer_list())
-  use value <- qcheck.given(qcheck.uniform_int())
-  let original_length = list.length(list)
-  let new_zipper = zlist.from_list(list) |> zlist.insert_left(value)
-  let new_length = new_zipper |> zlist.to_list |> list.length
-
-  assert new_length == original_length + 1
-}
-
-/// Insert right increases zipper length by one.
-/// For any list, inserting a value to the right should increase the length by one.
-///
-/// Formula: $\forall l: \text{List}, v: a \Rightarrow \text{length}(\text{to\_list}(\text{insert\_right}(\text{from\_list}(l), v))) = \text{length}(l) + 1$
-pub fn insert_right_increases_length_by_one_test() {
-  use list <- qcheck.given(maybe_empty_integer_list())
-  use value <- qcheck.given(qcheck.uniform_int())
-  let original_length = list.length(list)
-  let new_zipper = zlist.from_list(list) |> zlist.insert_right(value)
-  let new_length = new_zipper |> zlist.to_list |> list.length
-
-  assert new_length == original_length + 1
-}
-
-/// Set operation preserves zipper length.
-/// For any non-empty list, setting a value should not change the length.
-///
-/// Formula: $\forall l: \text{List}, l \neq [], v: a \Rightarrow \text{length}(\text{to\_list}(\text{set}(\text{from\_list}(l), v))) = \text{length}(l)$
-pub fn set_preserves_length_test() {
-  use list <- qcheck.given(non_empty_integer_list())
-  use value <- qcheck.given(qcheck.uniform_int())
-  let original_length = list.length(list)
-  let assert Ok(new_zipper) = zlist.from_list(list) |> zlist.set(value)
-  let new_length = new_zipper |> zlist.to_list |> list.length
-
-  assert new_length == original_length
-}
-
-/// Update operation preserves zipper length.
-/// For any non-empty list, updating a value should not change the length.
-///
-/// Formula: $\forall l: \text{List}, l \neq [], f: a \rightarrow a \Rightarrow \text{length}(\text{to\_list}(\text{update}(\text{from\_list}(l), f))) = \text{length}(l)$
-pub fn update_preserves_length_test() {
-  use list <- qcheck.given(non_empty_integer_list())
-  let updater = fn(x) { x * 2 }
-  let original_length = list.length(list)
-  let assert Ok(new_zipper) = zlist.from_list(list) |> zlist.update(updater)
-  let new_length = new_zipper |> zlist.to_list |> list.length
-
-  assert new_length == original_length
-}
-
-/// Upsert on existing element preserves zipper length.
-/// For any non-empty list, upserting with a value should not change the length.
-///
-/// Formula: $\forall l: \text{List}, l \neq [], f: \text{Option}(a) \rightarrow a \Rightarrow \text{length}(\text{to\_list}(\text{upsert}(\text{from\_list}(l), f))) = \text{length}(l)$
-pub fn upsert_on_existing_preserves_length_test() {
-  use list <- qcheck.given(non_empty_integer_list())
-  let upserter = fn(x) {
-    case x {
-      Some(x) -> x * 2
-      None -> panic as "should not be reach"
-    }
-  }
-  let original_length = list.length(list)
-  let new_zipper = zlist.from_list(list) |> zlist.upsert(upserter)
-  let new_length = new_zipper |> zlist.to_list |> list.length
-
-  assert new_length == original_length
-}
+// tests for predicates
 
 /// Is empty returns True on empty zipper.
 /// For an empty zipper, the is_empty function should return True.
@@ -470,6 +483,16 @@ pub fn is_rightmost_on_multi_element_returns_false_test() {
 //
 // helper
 //
+
+fn go_to_the_rightmost(zipper: zlist.Zipper(a)) -> zlist.Zipper(a) {
+  case zlist.is_rightmost(zipper) {
+    True -> zipper
+    False -> {
+      let assert Ok(zipper) = zlist.go_right(zipper)
+      go_to_the_rightmost(zipper)
+    }
+  }
+}
 
 fn list_of_empty_or_single_integer() {
   let list_length = qcheck.bounded_int(0, 1)
