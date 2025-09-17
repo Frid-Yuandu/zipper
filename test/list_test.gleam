@@ -20,164 +20,18 @@ pub fn doc_example_comprehensive_operations_test() {
   assert new_z |> zlist.to_list == [1, 42, 99, 4]
 }
 
-// from_list examples
-pub fn doc_example_from_list_get_first_element_test() {
-  let z = zlist.from_list([1, 2, 3])
-  assert zlist.get(z) == Ok(1)
-}
-
-pub fn doc_example_from_list_to_list_test() {
-  let z = zlist.from_list([1, 2, 3])
-  assert zlist.to_list(z) == [1, 2, 3]
-}
-
-// new() examples
-pub fn doc_example_new_empty_list_test() {
-  let z = zlist.new()
-  assert zlist.to_list(z) == []
-}
-
-// get() examples
-pub fn doc_example_get_from_non_empty_test() {
-  let z = zlist.from_list([1, 2, 3])
-  assert zlist.get(z) == Ok(1)
-}
-
-pub fn doc_example_get_from_empty_test() {
-  let z = zlist.new()
-  assert zlist.get(z) == Error(Nil)
-}
-
-// insert_left() examples
-pub fn doc_example_insert_left_non_empty_test() {
-  let z =
-    zlist.from_list([2, 3])
-    |> zlist.insert_left(1)
-  assert zlist.to_list(z) == [1, 2, 3]
-}
-
-pub fn doc_example_insert_left_preserves_focus_test() {
-  let z =
-    zlist.from_list([2, 3])
-    |> zlist.insert_left(1)
-  assert zlist.get(z) == Ok(2)
-}
-
-pub fn doc_example_insert_left_into_empty_test() {
-  let z =
-    zlist.new()
-    |> zlist.insert_left(42)
-  assert zlist.get(z) == Ok(42)
-}
-
-// insert_right() examples
-pub fn doc_example_insert_right_test() {
-  let z =
-    zlist.from_list([1, 2])
-    |> zlist.insert_right(3)
-  assert zlist.to_list(z) == [1, 3, 2]
-}
-
-// set() examples
-pub fn doc_example_set_value_test() {
-  let z = zlist.from_list([1, 2, 3])
-  let assert Ok(new_z) = zlist.set(z, 99)
-  assert zlist.to_list(new_z) == [99, 2, 3]
-}
-
-// update() examples
-pub fn doc_example_update_value_test() {
-  let z = zlist.from_list([1, 2, 3])
-  let assert Ok(new_z) = zlist.update(z, fn(x) { x * 2 })
-  assert zlist.to_list(new_z) == [2, 2, 3]
-}
-
-// upsert() examples
-pub fn doc_example_upsert_update_existing_test() {
-  let z = zlist.from_list([1, 2, 3])
-  let new_z =
-    zlist.upsert(z, fn(x: Option(Int)) {
-      case x {
-        Some(old) -> 2 * old
-        None -> 42
-      }
-    })
-  assert zlist.to_list(new_z) == [2, 2, 3]
-}
-
-pub fn doc_example_upsert_insert_when_empty_test() {
-  let z = zlist.new()
-  let new_z =
-    zlist.upsert(z, fn(x: Option(Int)) {
-      case x {
-        Some(old) -> 2 * old
-        None -> 42
-      }
-    })
-  assert zlist.to_list(new_z) == [42]
-}
-
-// delete() examples
-pub fn doc_example_delete_element_test() {
-  let z = zlist.from_list([1, 2, 3])
-  let assert Ok(new_z) = zlist.delete(z)
-  assert zlist.to_list(new_z) == [2, 3]
-}
-
-// is_empty() examples
-pub fn doc_example_is_empty_new_test() {
-  let z = zlist.new()
-  assert zlist.is_empty(z) == True
-}
-
-pub fn doc_example_is_empty_with_elements_test() {
-  let z = zlist.from_list([1])
-  assert zlist.is_empty(z) == False
-}
-
-// is_leftmost() examples
-pub fn doc_example_is_leftmost_beginning_test() {
-  let z = zlist.from_list([1, 2, 3])
-  assert zlist.is_leftmost(z) == True
-}
-
-pub fn doc_example_is_leftmost_after_moving_right_test() {
-  let z = zlist.from_list([1, 2, 3])
-  let assert Ok(moved_z) = zlist.go_right(z)
-  assert zlist.is_leftmost(moved_z) == False
-}
-
-// is_rightmost() examples
-pub fn doc_example_is_rightmost_end_test() {
-  let z = zlist.from_list([1, 2, 3])
-  let assert Ok(z1) = zlist.go_right(z)
-  let assert Ok(z2) = zlist.go_right(z1)
-  assert zlist.is_rightmost(z2) == True
-}
-
-pub fn doc_example_is_rightmost_beginning_test() {
-  let z = zlist.from_list([1, 2, 3])
-  assert zlist.is_rightmost(z) == False
-}
-
-// go_left() examples
-pub fn doc_example_go_left_and_back_test() {
-  let z = zlist.from_list([1, 2, 3])
-  let assert Ok(right_z) = zlist.go_right(z)
-  let assert Ok(left_z) = zlist.go_left(right_z)
-  assert zlist.get(left_z) == Ok(1)
-}
-
-// go_right() examples
-pub fn doc_example_go_right_test() {
-  let z = zlist.from_list([1, 2, 3])
-  let assert Ok(right_z) = zlist.go_right(z)
-  assert zlist.get(right_z) == Ok(2)
-}
-
 //
 // property-based testing
 //
+
+/// Creating a new zipper results in an empty zipper.
+/// The new() function should create a zipper with no elements.
+///
+/// Formula: $\text{to\_list}(\text{new}()) = []$
+pub fn new_results_in_empty_zipper_test() {
+  let z = zlist.new()
+  assert zlist.to_list(z) == []
+}
 
 /// Round-trip conversion preserves list identity.
 /// Converting a list to a zipper and back to a list should result in the original list.
@@ -580,6 +434,16 @@ pub fn is_leftmost_on_from_list_returns_true_test() {
   use list <- qcheck.given(maybe_empty_integer_list())
   let zipper = zlist.from_list(list)
   assert zlist.is_leftmost(zipper) == True
+}
+
+/// Moving right from the leftmost position makes is_leftmost return False.
+/// For any list with at least two elements, after moving right once, the zipper should no longer be at the leftmost position.
+///
+/// Formula: $\forall l: \text{List}, |l| \geq 2 \Rightarrow \text{is\_leftmost}(\text{go\_right}(\text{from\_list}(l))) = \text{False}$
+pub fn is_leftmost_after_go_right_returns_false_test() {
+  use list <- qcheck.given(list_of_at_least_two_integers())
+  let assert Ok(zipper) = zlist.from_list(list) |> zlist.go_right()
+  assert zlist.is_leftmost(zipper) == False
 }
 
 /// Is rightmost returns True on empty zipper.
