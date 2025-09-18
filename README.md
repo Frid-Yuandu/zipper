@@ -4,6 +4,8 @@
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/gleamy_zipper/)
 [![Build Status](https://github.com/Frid-Yuandu/zipper/workflows/test/badge.svg)](https://github.com/Frid-Yuandu/zipper/actions)
 
+English | [简体中文 README](./README_zh.md)
+
 A functional zipper library for Gleam. Zippers provide a way to navigate and update immutable data structures in an efficient and elegant way.
 
 This library provides zipper implementations for common data structures like lists, binary trees, and rose trees.
@@ -13,6 +15,8 @@ This library provides zipper implementations for common data structures like lis
 In functional programming, we work with immutable data. When you need to change an item deep within a complex data structure (like a tree), you would typically have to reconstruct the entire structure.
 
 A **zipper** solves this problem by representing a "focused" position within your data structure, keeping track of the path back to the root. This allows you to treat the data structure as if it were mutable for the purpose of an update, and then efficiently rebuild the structure with the change applied. All operations remain pure and functional.
+
+You can get more details about the zipper data structure from this paper, [*“The Zipper”*](https://www.cambridge.org/core/journals/journal-of-functional-programming/article/zipper/0C058890B8A9B588F26E6D68CF0CE204).
 
 ## Core Features
 
