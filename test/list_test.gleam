@@ -99,6 +99,12 @@ pub fn go_left_when_leftmost_is_an_error_test() {
 
 // tests for `set`
 
+pub fn set_on_empty_is_an_error_test() {
+  use value <- qcheck.given(qcheck.uniform_int())
+  let zipper = zlist.new()
+  assert zlist.set(zipper, value) == Error(Nil)
+}
+
 /// Setting a value makes it immediately visible.
 /// When setting a new value in a non-empty zipper, the get function should return that same value.
 ///
