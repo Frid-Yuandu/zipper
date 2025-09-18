@@ -39,7 +39,7 @@ Add `gleam_zipper` to your `gleam.toml` dependencies:
 
 ```toml
 [dependencies]
-gleam_zipper = "~> 0.1.0"
+gleam_zipper = "~> 0.1.1"
 ```
 
 ## Usage

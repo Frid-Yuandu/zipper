@@ -39,7 +39,7 @@
 
 ```toml
 [dependencies]
-gleam_zipper = "~> 0.1.0"
+gleam_zipper = "~> 0.1.1"
 ```
 
 ## 使用方法
