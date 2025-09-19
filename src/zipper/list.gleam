@@ -221,9 +221,10 @@ pub fn upsert(zipper: Zipper(a), updater: fn(Option(a)) -> a) -> Zipper(a) {
 /// ## Examples
 /// ```gleam
 /// // Successful deletion with multiple elements
-/// from_list([1, 2, 3])
-/// |> delete()
-/// |> to_list
+/// let zipper =
+///   from_list([1, 2, 3])
+///   |> delete()
+/// to_list(zipper)
 /// // => [2, 3]
 ///
 /// // Error when trying to delete the only element
