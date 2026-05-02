@@ -7,8 +7,9 @@
 ////
 //// Most navigation and local modification operations are $O(1)$. Going up
 //// the tree is $O(k)$, where $k$ is the number of left siblings of the
-//// current node. Operations that convert from or to a full tree structure
-//// are $O(n)$, where $n$ is the number of nodes in the tree.
+//// current node. Insert children at the last position is $O(d)$, where $d$ is
+//// the number of children. Operations that convert from or to a full tree
+//// structure are $O(n)$, where $n$ is the number of nodes in the tree.
 ////
 //// It supports both a standard `RoseTree` type and can be adapted to work with
 //// any user-defined rose tree structure via an `Adapter`.
@@ -496,6 +497,8 @@ pub fn insert_child(zipper: Zipper(a), tree: RoseTree(a)) -> Zipper(a) {
 }
 
 /// Inserts a new tree as the last child of the current node.
+///
+/// NOTE: This operation is $O(d)$ time complexity, where $d$ is the number of children.
 ///
 /// ## Examples
 /// ```gleam
