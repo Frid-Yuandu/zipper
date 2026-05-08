@@ -415,8 +415,8 @@ pub fn set_right(zipper: Zipper(a), right: Tree(a)) -> Result(Zipper(a), Nil) {
 /// let tree = Node(1, Node(2, Leaf, Leaf), Leaf)
 /// let zipper = from_standard_tree(tree)
 ///
-/// let Ok(zipper) = go_left(zipper)
-/// let Ok(zipper) = delete(zipper)
+/// let assert Ok(zipper) = go_left(zipper)
+/// let assert Ok(zipper) = delete(zipper)
 ///
 /// to_standard_tree(zipper)
 /// // => Node(1, Leaf, Leaf)
@@ -483,7 +483,7 @@ pub fn delete_right(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
 /// is_root(zipper)
 /// // => True
 ///
-/// let Ok(child_zipper) = go_left(zipper)
+/// let assert Ok(child_zipper) = go_left(zipper)
 /// is_root(child_zipper)
 /// // => False
 /// ```
@@ -548,7 +548,7 @@ pub fn go_right(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
 /// ## Examples
 /// ```gleam
 /// let zipper = from_standard_tree(Node(1, Node(2, Leaf, Leaf), Leaf))
-/// let Ok(child_zipper) = go_left(zipper)
+/// let assert Ok(child_zipper) = go_left(zipper)
 ///
 /// case go_up(child_zipper) {
 ///   Ok(parent_zipper) -> get_value(parent_zipper)
