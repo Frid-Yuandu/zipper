@@ -118,6 +118,8 @@ pub fn insert_left(zipper: Zipper(a), value: a) -> Zipper(a) {
 }
 
 /// Insert a new value to the right of the current focus value.
+/// If the original zipper is empty, the new value becomes the focus;
+/// otherwise, the original focus remains unchanged.
 ///
 /// ## Examples
 /// ```gleam
@@ -125,6 +127,8 @@ pub fn insert_left(zipper: Zipper(a), value: a) -> Zipper(a) {
 /// |> insert_right(3)
 /// |> to_list
 /// // => [1, 3, 2]
+/// get(zipper)
+/// // => Ok(1)
 /// ```
 pub fn insert_right(zipper: Zipper(a), value: a) -> Zipper(a) {
   case zipper {
