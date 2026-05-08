@@ -186,16 +186,23 @@ pub fn update(zipper: Zipper(a), updater: fn(a) -> a) -> Result(Zipper(a), Nil) 
 ///
 /// ## Examples
 /// ```gleam
+/// let transform = fn(x) {
+///   case x {
+///     Some(value) -> value * 2
+///     None -> 42
+///   }
+/// }
+///
 /// // Update existing value
-/// from_list([1, 2, 3])
-/// |> upsert(fn(Some(x)) { x * 2 })
-/// |> to_list
+/// let zipper = from_list([1, 2, 3])
+/// let zipper = upsert(zipper, transform)
+/// to_list(zipper)
 /// // => [2, 2, 3]
 ///
 /// // Insert when empty
-/// new()
-/// |> upsert(fn(None) { 42 })
-/// |> to_list
+/// let empty = new()
+/// let zipper = upsert(empty, transform)
+/// to_list(zipper)
 /// // => [42]
 /// ```
 pub fn upsert(zipper: Zipper(a), updater: fn(Option(a)) -> a) -> Zipper(a) {
@@ -225,9 +232,8 @@ pub fn upsert(zipper: Zipper(a), updater: fn(Option(a)) -> a) -> Zipper(a) {
 /// ## Examples
 /// ```gleam
 /// // Successful deletion with multiple elements
-/// let zipper =
-///   from_list([1, 2, 3])
-///   |> delete()
+/// let zipper = from_list([1, 2, 3])
+/// let assert Ok(zipper) = delete(zipper)
 /// to_list(zipper)
 /// // => [2, 3]
 ///
@@ -271,7 +277,9 @@ pub fn is_empty(zipper: Zipper(a)) -> Bool {
 /// from_list([1, 2, 3]) |> is_leftmost
 /// // => True
 ///
-/// from_list([1, 2, 3]) |> go_right() |> is_leftmost
+/// let zipper = from_list([1, 2, 3])
+/// let assert Ok(moved) = go_right(zipper)
+/// is_leftmost(moved)
 /// // => False
 /// ```
 pub fn is_leftmost(zipper: Zipper(a)) -> Bool {
@@ -287,11 +295,15 @@ pub fn is_leftmost(zipper: Zipper(a)) -> Bool {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([1, 2, 3]) |> go_right() |> go_right() |> is_rightmost
-/// // => True
-///
-/// from_list([1, 2, 3]) |> is_rightmost
+/// let zipper = from_list([1, 2, 3])
+/// is_rightmost(zipper)
 /// // => False
+///
+/// let zipper = from_list([1, 2, 3])
+/// let assert Ok(moved) = go_right(zipper)
+/// let assert Ok(rightmost) = go_right(moved)
+/// is_rightmost(rightmost)
+/// // => True
 /// ```
 pub fn is_rightmost(zipper: Zipper(a)) -> Bool {
   case zipper.focus {
@@ -306,10 +318,10 @@ pub fn is_rightmost(zipper: Zipper(a)) -> Bool {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([1, 2, 3])
-/// |> go_right()
-/// |> go_left()
-/// |> get
+/// let zipper = from_list([1, 2, 3])
+/// let assert Ok(moved) = go_right(zipper)
+/// let assert Ok(returned) = go_left(moved)
+/// get(returned)
 /// // => Ok(1)
 /// ```
 pub fn go_left(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
@@ -326,9 +338,9 @@ pub fn go_left(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([1, 2, 3])
-/// |> go_right()
-/// |> get
+/// let zipper = from_list([1, 2, 3])
+/// let assert Ok(moved) = go_right(zipper)
+/// get(moved)
 /// // => Ok(2)
 /// ```
 pub fn go_right(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
