@@ -421,7 +421,7 @@ pub fn update(zipper: Zipper(a), updater: fn(a) -> a) -> Zipper(a) {
 /// ## Examples
 /// ```gleam
 /// let tree = RoseTree(0, [RoseTree(2, [])])
-/// let zipper = from_standard_tree(tree) |> go_down // focus on 2
+/// let assert Ok(zipper) = from_standard_tree(tree) |> go_down // focus on 2
 ///
 /// let new_sibling = RoseTree(1, [])
 /// let assert Ok(zipper) = insert_left(zipper, new_sibling)
@@ -454,7 +454,7 @@ pub fn insert_left(
 /// ## Examples
 /// ```gleam
 /// let tree = RoseTree(0, [RoseTree(1, [])])
-/// let zipper = from_standard_tree(tree) |> go_down // focus on 1
+/// let assert Ok(zipper) = from_standard_tree(tree) |> go_down // focus on 1
 ///
 /// let new_sibling = RoseTree(2, [])
 /// let assert Ok(zipper) = insert_right(zipper, new_sibling)
