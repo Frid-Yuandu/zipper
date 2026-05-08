@@ -5,7 +5,7 @@ import qcheck
 import zipper/list as zlist
 
 // Main module documentation example
-pub fn doc_example_comprehensive_operations_test() {
+pub fn doc_comprehensive_operations_example_test() {
   let zipper = zlist.from_list([1, 2, 3, 4])
 
   let assert Ok(zipper) = zlist.go_right(zipper)
@@ -17,22 +17,22 @@ pub fn doc_example_comprehensive_operations_test() {
   assert zlist.to_list(zipper) == [1, 42, 99, 4]
 }
 
-pub fn doc_example_new_test() {
+pub fn doc_new_test() {
   let empty = zlist.new()
   assert zlist.to_list(empty) == []
 }
 
-pub fn doc_example_from_list_test() {
+pub fn doc_from_list_test() {
   let zipper = zlist.from_list([1, 2, 3])
   assert zlist.get(zipper) == Ok(1)
 }
 
-pub fn doc_example_to_list_test() {
+pub fn doc_to_list_test() {
   let zipper = zlist.from_list([1, 2, 3])
   assert zlist.to_list(zipper) == [1, 2, 3]
 }
 
-pub fn doc_example_get_test() {
+pub fn doc_get_test() {
   let zipper = zlist.from_list([1, 2, 3])
   assert zlist.get(zipper) == Ok(1)
 
@@ -40,7 +40,7 @@ pub fn doc_example_get_test() {
   assert zlist.get(empty) == Error(Nil)
 }
 
-pub fn doc_example_insert_left_test() {
+pub fn doc_insert_left_test() {
   let zipper =
     zlist.from_list([2, 3])
     |> zlist.insert_left(1)
@@ -52,7 +52,7 @@ pub fn doc_example_insert_left_test() {
   assert zlist.get(zipper) == Ok(42)
 }
 
-pub fn doc_example_insert_right_test() {
+pub fn doc_insert_right_test() {
   let zipper =
     zlist.from_list([1, 2])
     |> zlist.insert_right(3)
@@ -60,19 +60,19 @@ pub fn doc_example_insert_right_test() {
   assert zlist.get(zipper) == Ok(1)
 }
 
-pub fn doc_example_set_test() {
+pub fn doc_set_test() {
   let zipper = zlist.from_list([1, 2, 3])
   let assert Ok(updated) = zlist.set(zipper, 99)
   assert zlist.to_list(updated) == [99, 2, 3]
 }
 
-pub fn doc_example_update_test() {
+pub fn doc_update_test() {
   let zipper = zlist.from_list([1, 2, 3])
   let assert Ok(updated) = zlist.update(zipper, fn(x) { x * 2 })
   assert zlist.to_list(updated) == [2, 2, 3]
 }
 
-pub fn doc_example_upsert_test() {
+pub fn doc_upsert_test() {
   let transform = fn(x) {
     case x {
       Some(value) -> value * 2
@@ -91,7 +91,7 @@ pub fn doc_example_upsert_test() {
   assert zlist.to_list(zipper) == [42]
 }
 
-pub fn doc_example_delete_test() {
+pub fn doc_delete_test() {
   // Successful deletion with multiple elements
   let zipper = zlist.from_list([1, 2, 3])
   let assert Ok(zipper) = zlist.delete(zipper)
@@ -102,7 +102,7 @@ pub fn doc_example_delete_test() {
   assert zlist.delete(single) == Error(Nil)
 }
 
-pub fn doc_example_is_empty_test() {
+pub fn doc_is_empty_test() {
   let empty = zlist.new()
   assert zlist.is_empty(empty) == True
 
@@ -110,7 +110,7 @@ pub fn doc_example_is_empty_test() {
   assert zlist.is_empty(zipper) == False
 }
 
-pub fn doc_example_is_leftmost_test() {
+pub fn doc_is_leftmost_test() {
   let zipper = zlist.from_list([1, 2, 3])
   assert zlist.is_leftmost(zipper) == True
 
@@ -119,7 +119,7 @@ pub fn doc_example_is_leftmost_test() {
   assert zlist.is_leftmost(moved) == False
 }
 
-pub fn doc_example_is_rightmost_test() {
+pub fn doc_is_rightmost_test() {
   let zipper = zlist.from_list([1, 2, 3])
   assert zlist.is_rightmost(zipper) == False
 
@@ -129,14 +129,14 @@ pub fn doc_example_is_rightmost_test() {
   assert zlist.is_rightmost(rightmost) == True
 }
 
-pub fn doc_example_go_left_test() {
+pub fn doc_go_left_test() {
   let zipper = zlist.from_list([1, 2, 3])
   let assert Ok(moved) = zlist.go_right(zipper)
   let assert Ok(returned) = zlist.go_left(moved)
   assert zlist.get(returned) == Ok(1)
 }
 
-pub fn doc_example_go_right_test() {
+pub fn doc_go_right_test() {
   let zipper = zlist.from_list([1, 2, 3])
   let assert Ok(moved) = zlist.go_right(zipper)
   assert zlist.get(moved) == Ok(2)
