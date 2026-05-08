@@ -40,7 +40,8 @@ pub opaque type Zipper(a) {
 ///
 /// ## Examples
 /// ```gleam
-/// new() |> to_list
+/// let empty = new()
+/// to_list(empty)
 /// // => []
 /// ```
 pub fn new() -> Zipper(a) {
@@ -51,7 +52,8 @@ pub fn new() -> Zipper(a) {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([1, 2, 3]) |> get
+/// let zipper = from_list([1, 2, 3])
+/// get(zipper)
 /// // => Ok(1)
 /// ```
 pub fn from_list(list: List(a)) -> Zipper(a) {
@@ -62,7 +64,8 @@ pub fn from_list(list: List(a)) -> Zipper(a) {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([1, 2, 3]) |> to_list
+/// let zipper = from_list([1, 2, 3])
+/// to_list(zipper)
 /// // => [1, 2, 3]
 /// ```
 pub fn to_list(zipper: Zipper(a)) -> List(a) {
@@ -75,10 +78,12 @@ pub fn to_list(zipper: Zipper(a)) -> List(a) {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([1, 2, 3]) |> get
+/// let zipper = from_list([1, 2, 3])
+/// get(zipper)
 /// // => Ok(1)
 ///
-/// new() |> get
+/// let empty = new()
+/// get(empty)
 /// // => Error(Nil)
 /// ```
 pub fn get(zipper: Zipper(a)) -> Result(a, Nil) {
@@ -95,19 +100,17 @@ pub fn get(zipper: Zipper(a)) -> Result(a, Nil) {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([2, 3])
-/// |> insert_left(1)
-/// |> to_list
+/// let zipper =
+///   from_list([2, 3])
+///   |> insert_left(1)
+/// to_list(zipper)
 /// // => [1, 2, 3]
-///
-/// from_list([2, 3])
-/// |> insert_left(1)
-/// |> get
+/// get(zipper)
 /// // => Ok(2)
 ///
-/// from_list([])
-/// |> insert_left(42)
-/// |> get
+/// let empty = from_list([])
+/// let zipper = insert_left(empty, 42)
+/// get(zipper)
 /// // => Ok(42)
 /// ```
 pub fn insert_left(zipper: Zipper(a), value: a) -> Zipper(a) {
@@ -123,9 +126,9 @@ pub fn insert_left(zipper: Zipper(a), value: a) -> Zipper(a) {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([1, 2])
-/// |> insert_right(3)
-/// |> to_list
+/// let zipper = from_list([1, 2])
+/// let zipper = insert_right(zipper, 3)
+/// to_list(zipper)
 /// // => [1, 3, 2]
 /// get(zipper)
 /// // => Ok(1)
@@ -144,10 +147,10 @@ pub fn insert_right(zipper: Zipper(a), value: a) -> Zipper(a) {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([1, 2, 3])
-/// |> set(99)
-/// |> result.map(to_list)
-/// // => Ok([99, 2, 3])
+/// let zipper = from_list([1, 2, 3])
+/// let assert Ok(updated) = set(zipper, 99)
+/// to_list(updated)
+/// // => [99, 2, 3]
 /// ```
 pub fn set(zipper: Zipper(a), new_value: a) -> Result(Zipper(a), Nil) {
   case zipper {
@@ -163,10 +166,10 @@ pub fn set(zipper: Zipper(a), new_value: a) -> Result(Zipper(a), Nil) {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([1, 2, 3])
-/// |> update(fn(x) { x * 2 })
-/// |> result.map(to_list)
-/// // => Ok([2, 2, 3])
+/// let zipper = from_list([1, 2, 3])
+/// let assert Ok(updated) = update(zipper, fn(x) { x * 2 })
+/// to_list(updated)
+/// // => [2, 2, 3]
 /// ```
 pub fn update(zipper: Zipper(a), updater: fn(a) -> a) -> Result(Zipper(a), Nil) {
   case zipper {
@@ -238,8 +241,8 @@ pub fn upsert(zipper: Zipper(a), updater: fn(Option(a)) -> a) -> Zipper(a) {
 /// // => [2, 3]
 ///
 /// // Error when trying to delete the only element
-/// from_list([42])
-/// |> delete()
+/// let single = from_list([42])
+/// delete(single)
 /// // => Error(Nil)
 /// ```
 pub fn delete(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
@@ -255,10 +258,12 @@ pub fn delete(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
 ///
 /// ## Examples
 /// ```gleam
-/// new() |> is_empty
+/// let empty = new()
+/// is_empty(empty)
 /// // => True
 ///
-/// from_list([1]) |> is_empty
+/// let zipper = from_list([1])
+/// is_empty(zipper)
 /// // => False
 /// ```
 pub fn is_empty(zipper: Zipper(a)) -> Bool {
@@ -274,7 +279,8 @@ pub fn is_empty(zipper: Zipper(a)) -> Bool {
 ///
 /// ## Examples
 /// ```gleam
-/// from_list([1, 2, 3]) |> is_leftmost
+/// let zipper = from_list([1, 2, 3])
+/// is_leftmost(zipper)
 /// // => True
 ///
 /// let zipper = from_list([1, 2, 3])
