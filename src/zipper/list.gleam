@@ -86,7 +86,29 @@ pub fn to_list(zipper: Zipper(a)) -> List(a) {
 /// get(empty)
 /// // => Error(Nil)
 /// ```
+@deprecated("Use `get_value` instead")
 pub fn get(zipper: Zipper(a)) -> Result(a, Nil) {
+  case zipper {
+    Zipper(focus: [], ..) -> Error(Nil)
+    Zipper(focus: [current, ..], ..) -> Ok(current)
+  }
+}
+
+/// Get the current focus value of the zipper.
+///
+/// Returns `Error(Nil)` if the zipper is empty.
+///
+/// ## Examples
+/// ```gleam
+/// let zipper = from_list([1, 2, 3])
+/// get_value(zipper)
+/// // => Ok(1)
+///
+/// let empty = new()
+/// get_value(empty)
+/// // => Error(Nil)
+/// ```
+pub fn get_value(zipper: Zipper(a)) -> Result(a, Nil) {
   case zipper {
     Zipper(focus: [], ..) -> Error(Nil)
     Zipper(focus: [current, ..], ..) -> Ok(current)
@@ -152,7 +174,27 @@ pub fn insert_right(zipper: Zipper(a), value: a) -> Zipper(a) {
 /// to_list(updated)
 /// // => [99, 2, 3]
 /// ```
+@deprecated("Use `set_value` instead")
 pub fn set(zipper: Zipper(a), new_value: a) -> Result(Zipper(a), Nil) {
+  case zipper {
+    Zipper(_, focus: []) -> Error(Nil)
+    Zipper(_, focus: [_, ..rest]) ->
+      Ok(Zipper(..zipper, focus: [new_value, ..rest]))
+  }
+}
+
+/// Set the current focus value of the zipper list.
+///
+/// Returns the previous value if successful, or `Error(Nil)` if the zipper is empty.
+///
+/// ## Examples
+/// ```gleam
+/// let zipper = from_list([1, 2, 3])
+/// let assert Ok(updated) = set_value(zipper, 99)
+/// to_list(updated)
+/// // => [99, 2, 3]
+/// ```
+pub fn set_value(zipper: Zipper(a), new_value: a) -> Result(Zipper(a), Nil) {
   case zipper {
     Zipper(_, focus: []) -> Error(Nil)
     Zipper(_, focus: [_, ..rest]) ->
