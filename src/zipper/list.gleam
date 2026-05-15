@@ -90,10 +90,7 @@ pub fn to_list(zipper: Zipper(a)) -> List(a) {
 /// ```
 @deprecated("Use `get_value` instead")
 pub fn get(zipper: Zipper(a)) -> Result(a, Nil) {
-  case zipper {
-    Zipper(focus: [], ..) -> Error(Nil)
-    Zipper(focus: [current, ..], ..) -> Ok(current)
-  }
+  get_value(zipper)
 }
 
 /// Get the current focus value of the zipper.
@@ -180,11 +177,7 @@ pub fn insert_right(zipper: Zipper(a), value: a) -> Zipper(a) {
 /// ```
 @deprecated("Use `set_value` instead")
 pub fn set(zipper: Zipper(a), new_value: a) -> Result(Zipper(a), Nil) {
-  case zipper {
-    Zipper(_, focus: []) -> Error(Nil)
-    Zipper(_, focus: [_, ..rest]) ->
-      Ok(Zipper(..zipper, focus: [new_value, ..rest]))
-  }
+  set_value(zipper, new_value)
 }
 
 /// Set the current focus value of the zipper list.
