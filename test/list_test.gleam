@@ -9,7 +9,7 @@ pub fn doc_comprehensive_operations_example_test() {
   let zipper = zlist.from_list([1, 2, 3, 4])
 
   let assert Ok(zipper) = zlist.go_right(zipper)
-  let assert Ok(zipper) = zlist.set(zipper, 99)
+  let assert Ok(zipper) = zlist.set_value(zipper, 99)
   let zipper = zlist.insert_left(zipper, 42)
   let assert Ok(zipper) = zlist.go_right(zipper)
   let assert Ok(zipper) = zlist.delete(zipper)
@@ -24,7 +24,7 @@ pub fn doc_new_test() {
 
 pub fn doc_from_list_test() {
   let zipper = zlist.from_list([1, 2, 3])
-  assert zlist.get(zipper) == Ok(1)
+  assert zlist.get_value(zipper) == Ok(1)
 }
 
 pub fn doc_to_list_test() {
@@ -32,12 +32,12 @@ pub fn doc_to_list_test() {
   assert zlist.to_list(zipper) == [1, 2, 3]
 }
 
-pub fn doc_get_test() {
+pub fn doc_get_value_test() {
   let zipper = zlist.from_list([1, 2, 3])
-  assert zlist.get(zipper) == Ok(1)
+  assert zlist.get_value(zipper) == Ok(1)
 
   let empty = zlist.new()
-  assert zlist.get(empty) == Error(Nil)
+  assert zlist.get_value(empty) == Error(Nil)
 }
 
 pub fn doc_insert_left_test() {
@@ -45,11 +45,11 @@ pub fn doc_insert_left_test() {
     zlist.from_list([2, 3])
     |> zlist.insert_left(1)
   assert zlist.to_list(zipper) == [1, 2, 3]
-  assert zlist.get(zipper) == Ok(2)
+  assert zlist.get_value(zipper) == Ok(2)
 
   let empty = zlist.from_list([])
   let zipper = zlist.insert_left(empty, 42)
-  assert zlist.get(zipper) == Ok(42)
+  assert zlist.get_value(zipper) == Ok(42)
 }
 
 pub fn doc_insert_right_test() {
@@ -57,12 +57,12 @@ pub fn doc_insert_right_test() {
     zlist.from_list([1, 2])
     |> zlist.insert_right(3)
   assert zlist.to_list(zipper) == [1, 3, 2]
-  assert zlist.get(zipper) == Ok(1)
+  assert zlist.get_value(zipper) == Ok(1)
 }
 
-pub fn doc_set_test() {
+pub fn doc_set_value_test() {
   let zipper = zlist.from_list([1, 2, 3])
-  let assert Ok(updated) = zlist.set(zipper, 99)
+  let assert Ok(updated) = zlist.set_value(zipper, 99)
   assert zlist.to_list(updated) == [99, 2, 3]
 }
 
@@ -133,13 +133,13 @@ pub fn doc_go_left_test() {
   let zipper = zlist.from_list([1, 2, 3])
   let assert Ok(moved) = zlist.go_right(zipper)
   let assert Ok(returned) = zlist.go_left(moved)
-  assert zlist.get(returned) == Ok(1)
+  assert zlist.get_value(returned) == Ok(1)
 }
 
 pub fn doc_go_right_test() {
   let zipper = zlist.from_list([1, 2, 3])
   let assert Ok(moved) = zlist.go_right(zipper)
-  assert zlist.get(moved) == Ok(2)
+  assert zlist.get_value(moved) == Ok(2)
 }
 
 //
@@ -222,22 +222,24 @@ pub fn go_left_when_leftmost_is_an_error_test() {
 
 // tests for `set`
 
-pub fn set_on_empty_is_an_error_test() {
+pub fn set_value_on_empty_is_an_error_test() {
   use value <- qcheck.given(qcheck.uniform_int())
   let zipper = zlist.new()
-  assert zlist.set(zipper, value) == Error(Nil)
+  assert zlist.set_value(zipper, value) == Error(Nil)
 }
 
 /// Setting a value makes it immediately visible.
 /// When setting a new value in a non-empty zipper, the get function should return that same value.
 ///
 /// Formula: $\forall l: \text{List}, l \neq [], v: a \Rightarrow \text{get}(\text{set}(\text{from\_list}(l), v)) = v$
-pub fn set_is_immediately_visible_test() {
+pub fn set_value_is_immediately_visible_test() {
   use list <- qcheck.given(non_empty_integer_list())
   use new_value <- qcheck.given(qcheck.uniform_int())
 
   let assert Ok(got_value) =
-    zlist.from_list(list) |> zlist.set(new_value) |> result.try(zlist.get)
+    zlist.from_list(list)
+    |> zlist.set_value(new_value)
+    |> result.try(zlist.get_value)
   assert got_value == new_value
 }
 
@@ -245,11 +247,11 @@ pub fn set_is_immediately_visible_test() {
 /// For any non-empty list, setting a value should not change the length.
 ///
 /// Formula: $\forall l: \text{List}, l \neq [], v: a \Rightarrow \text{length}(\text{to\_list}(\text{set}(\text{from\_list}(l), v))) = \text{length}(l)$
-pub fn set_preserves_length_test() {
+pub fn set_value_preserves_length_test() {
   use list <- qcheck.given(non_empty_integer_list())
   use value <- qcheck.given(qcheck.uniform_int())
   let original_length = list.length(list)
-  let assert Ok(new_zipper) = zlist.from_list(list) |> zlist.set(value)
+  let assert Ok(new_zipper) = zlist.from_list(list) |> zlist.set_value(value)
   let new_length = new_zipper |> zlist.to_list |> list.length
 
   assert new_length == original_length
@@ -266,7 +268,9 @@ pub fn update_is_immediately_visible_test() {
   let updater = fn(x) { x * 2 }
 
   let assert Ok(updated_value) =
-    zlist.from_list([value]) |> zlist.update(updater) |> result.try(zlist.get)
+    zlist.from_list([value])
+    |> zlist.update(updater)
+    |> result.try(zlist.get_value)
   assert updated_value == updater(value)
 }
 
@@ -300,7 +304,7 @@ pub fn upsert_on_existing_applies_update_function_test() {
   }
 
   let assert Ok(upserted_value) =
-    zlist.from_list([value]) |> zlist.upsert(upserter) |> zlist.get()
+    zlist.from_list([value]) |> zlist.upsert(upserter) |> zlist.get_value()
   assert upserted_value == upserter(Some(value))
 }
 
@@ -355,7 +359,7 @@ pub fn insert_left_is_immediately_visible_test() {
     zlist.from_list(list)
     |> zlist.insert_left(value)
     |> zlist.go_left
-    |> result.try(zlist.get)
+    |> result.try(zlist.get_value)
 
   assert got_value == value
 }
@@ -369,7 +373,7 @@ pub fn insert_left_on_non_empty_preserves_focus_test() {
   use value <- qcheck.given(qcheck.uniform_int())
   let assert [original_value, ..] = list
   let zipper = zlist.from_list(list) |> zlist.insert_left(value)
-  let assert Ok(got_value) = zlist.get(zipper)
+  let assert Ok(got_value) = zlist.get_value(zipper)
 
   assert got_value == original_value
 }
@@ -381,7 +385,7 @@ pub fn insert_left_on_non_empty_preserves_focus_test() {
 pub fn insert_left_on_empty_list_focuses_on_inserted_element_test() {
   use value <- qcheck.given(qcheck.uniform_int())
   let zipper = zlist.from_list([]) |> zlist.insert_left(value)
-  let assert Ok(got_value) = zlist.get(zipper)
+  let assert Ok(got_value) = zlist.get_value(zipper)
 
   assert got_value == value
 }
@@ -412,7 +416,7 @@ pub fn insert_right_is_immediately_visible_test() {
 
   let assert Ok(zipper) =
     zlist.from_list(list) |> zlist.insert_right(value) |> zlist.go_right
-  let assert Ok(got_value) = zlist.get(zipper)
+  let assert Ok(got_value) = zlist.get_value(zipper)
 
   assert got_value == value
 }
@@ -426,7 +430,7 @@ pub fn insert_right_on_non_empty_preserves_focus_test() {
   use value <- qcheck.given(qcheck.uniform_int())
   let assert [original_value, ..] = list
   let zipper = zlist.from_list(list) |> zlist.insert_right(value)
-  let assert Ok(got_value) = zlist.get(zipper)
+  let assert Ok(got_value) = zlist.get_value(zipper)
 
   assert got_value == original_value
 }
@@ -438,7 +442,7 @@ pub fn insert_right_on_non_empty_preserves_focus_test() {
 pub fn insert_right_on_empty_list_focuses_on_inserted_element_test() {
   use value <- qcheck.given(qcheck.uniform_int())
   let zipper = zlist.from_list([]) |> zlist.insert_right(value)
-  let assert Ok(got_value) = zlist.get(zipper)
+  let assert Ok(got_value) = zlist.get_value(zipper)
 
   assert got_value == value
 }
@@ -503,7 +507,7 @@ pub fn delete_moves_focus_to_the_right_test() {
 
   let zipper = zlist.from_list(original_list)
   let assert Ok(deleted_zipper) = zipper |> zlist.delete
-  let assert Ok(new_focus_value) = zlist.get(deleted_zipper)
+  let assert Ok(new_focus_value) = zlist.get_value(deleted_zipper)
 
   assert new_focus_value == expected_focus_value
 }
@@ -518,7 +522,7 @@ pub fn delete_at_rightmost_moves_focus_to_the_left_test() {
 
   let zipper = zlist.from_list(original_list) |> go_to_the_rightmost
   let assert Ok(deleted_zipper) = zlist.delete(zipper)
-  let assert Ok(new_focus_value) = zlist.get(deleted_zipper)
+  let assert Ok(new_focus_value) = zlist.get_value(deleted_zipper)
 
   assert new_focus_value == expected_focus_value
 }
@@ -529,20 +533,20 @@ pub fn delete_at_rightmost_moves_focus_to_the_left_test() {
 /// For any attempt to get a value from an empty zipper, the operation should fail.
 ///
 /// Formula: $\text{get}(\text{from\_list}([])) \; \text{is} \; \text{Error}$
-pub fn get_from_empty_list_is_error_test() {
+pub fn get_value_from_empty_list_is_error_test() {
   let zipper = zlist.from_list([])
-  assert zlist.get(zipper) == Error(Nil)
+  assert zlist.get_value(zipper) == Error(Nil)
 }
 
 /// Getting from a non-empty zipper should return the focused value.
 /// For any non-empty list, getting from the zipper should return the first element.
 ///
 /// Formula: $\forall l: \text{List}, l \neq [] \Rightarrow \text{get}(\text{from\_list}(l)) = \text{first}(l)$
-pub fn get_from_non_empty_list_returns_value_test() {
+pub fn get_value_from_non_empty_list_returns_value_test() {
   use list <- qcheck.given(non_empty_integer_list())
   let assert [expected_value, ..] = list
   let zipper = zlist.from_list(list)
-  let assert Ok(got_value) = zlist.get(zipper)
+  let assert Ok(got_value) = zlist.get_value(zipper)
 
   assert got_value == expected_value
 }

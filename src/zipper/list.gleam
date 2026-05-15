@@ -6,17 +6,17 @@
 ////
 //// ## Usage
 //// ```gleam
-//// import zipper/list
+//// import zipper/list as zipper_list
 ////
-//// let zipper = list.from_list([1, 2, 3, 4])
+//// let zipper = zipper_list.from_list([1, 2, 3, 4])
 ////
-//// let assert Ok(zipper) = list.go_right(zipper)
-//// let assert Ok(zipper) = list.set(zipper, 99)
-//// let zipper = list.insert_left(zipper, 42)
-//// let assert Ok(zipper) = list.go_right(zipper)
-//// let assert Ok(zipper) = list.delete(zipper)
+//// let assert Ok(zipper) = zipper_list.go_right(zipper)
+//// let assert Ok(zipper) = zipper_list.set_value(zipper, 99)
+//// let zipper = zipper_list.insert_left(zipper, 42)
+//// let assert Ok(zipper) = zipper_list.go_right(zipper)
+//// let assert Ok(zipper) = zipper_list.delete(zipper)
 ////
-//// list.to_list(zipper)
+//// zipper_list.to_list(zipper)
 //// // => [1, 42, 99, 4]
 //// ```
 
@@ -53,7 +53,7 @@ pub fn new() -> Zipper(a) {
 /// ## Examples
 /// ```gleam
 /// let zipper = from_list([1, 2, 3])
-/// get(zipper)
+/// get_value(zipper)
 /// // => Ok(1)
 /// ```
 pub fn from_list(list: List(a)) -> Zipper(a) {
@@ -74,19 +74,40 @@ pub fn to_list(zipper: Zipper(a)) -> List(a) {
 
 /// Get the current focus value of the zipper.
 ///
+/// **Deprecated**: Use [`get_value`](#get_value) instead.
+///
 /// Returns `Error(Nil)` if the zipper is empty.
 ///
 /// ## Examples
 /// ```gleam
 /// let zipper = from_list([1, 2, 3])
-/// get(zipper)
+/// get_value(zipper)
 /// // => Ok(1)
 ///
 /// let empty = new()
-/// get(empty)
+/// get_value(empty)
 /// // => Error(Nil)
 /// ```
+@deprecated("Use `get_value` instead")
 pub fn get(zipper: Zipper(a)) -> Result(a, Nil) {
+  get_value(zipper)
+}
+
+/// Get the current focus value of the zipper.
+///
+/// Returns `Error(Nil)` if the zipper is empty.
+///
+/// ## Examples
+/// ```gleam
+/// let zipper = from_list([1, 2, 3])
+/// get_value(zipper)
+/// // => Ok(1)
+///
+/// let empty = new()
+/// get_value(empty)
+/// // => Error(Nil)
+/// ```
+pub fn get_value(zipper: Zipper(a)) -> Result(a, Nil) {
   case zipper {
     Zipper(focus: [], ..) -> Error(Nil)
     Zipper(focus: [current, ..], ..) -> Ok(current)
@@ -105,12 +126,12 @@ pub fn get(zipper: Zipper(a)) -> Result(a, Nil) {
 ///   |> insert_left(1)
 /// to_list(zipper)
 /// // => [1, 2, 3]
-/// get(zipper)
+/// get_value(zipper)
 /// // => Ok(2)
 ///
 /// let empty = from_list([])
 /// let zipper = insert_left(empty, 42)
-/// get(zipper)
+/// get_value(zipper)
 /// // => Ok(42)
 /// ```
 pub fn insert_left(zipper: Zipper(a), value: a) -> Zipper(a) {
@@ -130,7 +151,7 @@ pub fn insert_left(zipper: Zipper(a), value: a) -> Zipper(a) {
 /// let zipper = insert_right(zipper, 3)
 /// to_list(zipper)
 /// // => [1, 3, 2]
-/// get(zipper)
+/// get_value(zipper)
 /// // => Ok(1)
 /// ```
 pub fn insert_right(zipper: Zipper(a), value: a) -> Zipper(a) {
@@ -143,16 +164,34 @@ pub fn insert_right(zipper: Zipper(a), value: a) -> Zipper(a) {
 
 /// Set the current focus value of the zipper list.
 ///
+/// **Deprecated**: Use [`set_value`](#set_value) instead.
+///
 /// Returns the previous value if successful, or `Error(Nil)` if the zipper is empty.
 ///
 /// ## Examples
 /// ```gleam
 /// let zipper = from_list([1, 2, 3])
-/// let assert Ok(updated) = set(zipper, 99)
+/// let assert Ok(updated) = set_value(zipper, 99)
 /// to_list(updated)
 /// // => [99, 2, 3]
 /// ```
+@deprecated("Use `set_value` instead")
 pub fn set(zipper: Zipper(a), new_value: a) -> Result(Zipper(a), Nil) {
+  set_value(zipper, new_value)
+}
+
+/// Set the current focus value of the zipper list.
+///
+/// Returns the previous value if successful, or `Error(Nil)` if the zipper is empty.
+///
+/// ## Examples
+/// ```gleam
+/// let zipper = from_list([1, 2, 3])
+/// let assert Ok(updated) = set_value(zipper, 99)
+/// to_list(updated)
+/// // => [99, 2, 3]
+/// ```
+pub fn set_value(zipper: Zipper(a), new_value: a) -> Result(Zipper(a), Nil) {
   case zipper {
     Zipper(_, focus: []) -> Error(Nil)
     Zipper(_, focus: [_, ..rest]) ->
@@ -327,7 +366,7 @@ pub fn is_rightmost(zipper: Zipper(a)) -> Bool {
 /// let zipper = from_list([1, 2, 3])
 /// let assert Ok(moved) = go_right(zipper)
 /// let assert Ok(returned) = go_left(moved)
-/// get(returned)
+/// get_value(returned)
 /// // => Ok(1)
 /// ```
 pub fn go_left(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
@@ -346,7 +385,7 @@ pub fn go_left(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
 /// ```gleam
 /// let zipper = from_list([1, 2, 3])
 /// let assert Ok(moved) = go_right(zipper)
-/// get(moved)
+/// get_value(moved)
 /// // => Ok(2)
 /// ```
 pub fn go_right(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
