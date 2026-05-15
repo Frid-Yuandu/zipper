@@ -204,6 +204,22 @@ pub fn doc_update_test() {
   assert rose_tree.get_value(zipper) == 20
 }
 
+// upsert examples
+pub fn doc_upsert_test() {
+  let zipper = rose_tree.from_standard_tree(rose_tree.RoseTree(10, []))
+  let zipper =
+    rose_tree.upsert(zipper, fn(t) {
+      rose_tree.RoseTree(..t, children: [
+        rose_tree.RoseTree(value: 1, children: []),
+        rose_tree.RoseTree(value: 2, children: []),
+        rose_tree.RoseTree(value: 3, children: []),
+      ])
+    })
+  let assert Ok(zipper) = rose_tree.go_down(zipper)
+
+  assert rose_tree.get_value(zipper) == 1
+}
+
 // insert_left examples
 pub fn doc_insert_left_test() {
   let tree = rose_tree.RoseTree(0, [rose_tree.RoseTree(2, [])])
