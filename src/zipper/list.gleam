@@ -74,6 +74,8 @@ pub fn to_list(zipper: Zipper(a)) -> List(a) {
 
 /// Get the current focus value of the zipper.
 ///
+/// **Deprecated**: Use [`get_value`](#get_value) instead.
+///
 /// Returns `Error(Nil)` if the zipper is empty.
 ///
 /// ## Examples
@@ -164,6 +166,8 @@ pub fn insert_right(zipper: Zipper(a), value: a) -> Zipper(a) {
 }
 
 /// Set the current focus value of the zipper list.
+///
+/// **Deprecated**: Use [`set_value`](#set_value) instead.
 ///
 /// Returns the previous value if successful, or `Error(Nil)` if the zipper is empty.
 ///
