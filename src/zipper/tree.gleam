@@ -348,20 +348,25 @@ pub fn update(zipper: Zipper(a), updater: fn(a) -> a) -> Result(Zipper(a), Nil) 
   }
 }
 
-/// Upserts the current focus node.
-///
-/// Applies the updater function to the current focus subtree, allowing
-/// both updates to existing nodes and insertion of new nodes.
+/// Maps the current focus of the binary tree using a transformation function.
+/// Unlike [`update`](#update), which only transforms the value of a `Node`
+/// (and fails on `Leaf`), `map_focus` operates on the entire `Tree(a)` —
+/// allowing you to replace a `Leaf` with a `Node`, restructure subtrees,
+/// or transform both the value and children in a single pass.
 ///
 /// ## Examples
 /// ```gleam
+/// // Turn a Leaf into a Node
 /// let zipper = from_standard_tree(Leaf)
-/// let updated_zipper = upsert(zipper, fn(_) { Node(1, Leaf, Leaf) })
+/// let zipper = map_focus(zipper, fn(_) { Node(1, Leaf, Leaf) })
 ///
-/// get_value(updated_zipper)
+/// get_value(zipper)
 /// // => Ok(1)
 /// ```
-pub fn upsert(zipper: Zipper(a), updater: fn(Tree(a)) -> Tree(a)) -> Zipper(a) {
+pub fn map_focus(
+  zipper: Zipper(a),
+  updater: fn(Tree(a)) -> Tree(a),
+) -> Zipper(a) {
   Zipper(..zipper, focus: updater(zipper.focus))
 }
 
