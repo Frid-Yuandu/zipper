@@ -182,11 +182,11 @@ pub fn doc_update_test() {
   assert tree.get_value(zipper) == Ok(2)
 }
 
-// map_focus examples
-pub fn doc_map_focus_test() {
+// upsert examples
+pub fn doc_upsert_test() {
   let zipper = tree.from_standard_tree(tree.Leaf)
   let updated_zipper =
-    tree.map_focus(zipper, fn(_) { tree.Node(1, tree.Leaf, tree.Leaf) })
+    tree.upsert(zipper, fn(_) { tree.Node(1, tree.Leaf, tree.Leaf) })
   assert tree.get_value(updated_zipper) == Ok(1)
 }
 
