@@ -350,6 +350,8 @@ pub fn update(zipper: Zipper(a), updater: fn(a) -> a) -> Result(Zipper(a), Nil) 
 
 /// Upserts the current focus node.
 ///
+/// **Deprecated**: Use [`map_focus`](#map_focus) instead.
+///
 /// Applies the updater function to the current focus subtree, allowing
 /// both updates to existing nodes and insertion of new nodes.
 ///
@@ -361,7 +363,27 @@ pub fn update(zipper: Zipper(a), updater: fn(a) -> a) -> Result(Zipper(a), Nil) 
 /// get_value(updated_zipper)
 /// // => Ok(1)
 /// ```
+@deprecated("use `map_focus` instead")
 pub fn upsert(zipper: Zipper(a), updater: fn(Tree(a)) -> Tree(a)) -> Zipper(a) {
+  map_focus(zipper, updater)
+}
+
+/// Maps the current focus node.
+///
+/// Applies the updater function to the current focus subtree.
+///
+/// ## Examples
+/// ```gleam
+/// let zipper = from_standard_tree(Leaf)
+/// let updated_zipper = map_focus(zipper, fn(_) { Node(1, Leaf, Leaf) })
+///
+/// get_value(updated_zipper)
+/// // => Ok(1)
+/// ```
+pub fn map_focus(
+  zipper: Zipper(a),
+  updater: fn(Tree(a)) -> Tree(a),
+) -> Zipper(a) {
   Zipper(..zipper, focus: updater(zipper.focus))
 }
 
