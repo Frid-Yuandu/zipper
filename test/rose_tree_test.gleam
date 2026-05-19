@@ -204,11 +204,11 @@ pub fn doc_update_test() {
   assert rose_tree.get_value(zipper) == 20
 }
 
-// upsert examples
-pub fn doc_upsert_test() {
+// map_focus examples
+pub fn doc_map_focus_test() {
   let zipper = rose_tree.from_standard_tree(rose_tree.RoseTree(10, []))
   let zipper =
-    rose_tree.upsert(zipper, fn(t) {
+    rose_tree.map_focus(zipper, fn(t) {
       rose_tree.RoseTree(..t, children: [
         rose_tree.RoseTree(value: 1, children: []),
         rose_tree.RoseTree(value: 2, children: []),
