@@ -1,4 +1,5 @@
 import gleam/list
+import qcheck
 import zipper/rose_tree
 
 // For user-defined tree tests
@@ -345,4 +346,120 @@ pub fn doc_is_rightmost_test() {
   let assert Ok(zipper) = rose_tree.go_right(zipper)
 
   assert rose_tree.is_rightmost(zipper) == True
+}
+
+// --- map_focus property-based tests ---
+
+/// Identity: applying identity function changes nothing.
+///
+/// Formula: $\forall t: \text{RoseTree} \Rightarrow \text{to\_standard\_tree}(\text{map\_focus}(\text{from\_standard\_tree}(t), \text{id})) = t$
+pub fn map_focus_identity_test() {
+  use tree <- qcheck.given(gen_rose_tree())
+  let zipper = rose_tree.from_standard_tree(tree)
+  let mapped = rose_tree.map_focus(zipper, fn(t) { t })
+
+  assert rose_tree.to_standard_tree(mapped) == tree
+}
+
+/// Composition: sequential map_focus equals composed transform.
+///
+/// Formula: $\forall t, f, g \Rightarrow \text{map\_focus}(\text{map\_focus}(z, f), g) = \text{map\_focus}(z, g \circ f)$
+pub fn map_focus_composition_test() {
+  use tree <- qcheck.given(gen_rose_tree())
+  let zipper = rose_tree.from_standard_tree(tree)
+
+  let f = fn(t: rose_tree.RoseTree(Int)) {
+    rose_tree.RoseTree(..t, value: t.value * 2)
+  }
+  let g = fn(t: rose_tree.RoseTree(Int)) {
+    rose_tree.RoseTree(..t, children: [rose_tree.RoseTree(0, []), ..t.children])
+  }
+
+  let way1 = rose_tree.map_focus(rose_tree.map_focus(zipper, f), g)
+  let way2 = rose_tree.map_focus(zipper, fn(t) { g(f(t)) })
+
+  assert rose_tree.to_standard_tree(way1) == rose_tree.to_standard_tree(way2)
+}
+
+/// Focus equivalence: the value of the mapped focus equals the transform applied to the original focus.
+///
+/// Formula: $\forall t, f \Rightarrow \text{get\_value}(\text{map\_focus}(z, f)) = f(\text{get\_standard\_tree}(z)).\text{value}$
+pub fn map_focus_focus_equivalence_test() {
+  use tree <- qcheck.given(gen_rose_tree())
+  let zipper = rose_tree.from_standard_tree(tree)
+  let f = fn(t: rose_tree.RoseTree(Int)) {
+    rose_tree.RoseTree(..t, value: t.value + 1)
+  }
+
+  let mapped = rose_tree.map_focus(zipper, f)
+
+  assert rose_tree.get_value(mapped) == f(tree).value
+}
+
+/// Navigation preservation: map_focus does not affect navigation state.
+///
+/// Formula: $\forall t, f \Rightarrow \text{is\_leftmost}(z) = \text{is\_leftmost}(\text{map\_focus}(z, f))$
+pub fn map_focus_navigation_preservation_test() {
+  use tree <- qcheck.given(gen_rose_tree())
+  let zipper = rose_tree.from_standard_tree(tree)
+  let f = fn(t: rose_tree.RoseTree(Int)) {
+    rose_tree.RoseTree(..t, value: t.value + 1)
+  }
+
+  let mapped = rose_tree.map_focus(zipper, f)
+
+  assert rose_tree.is_leftmost(zipper) == rose_tree.is_leftmost(mapped)
+  assert rose_tree.is_rightmost(zipper) == rose_tree.is_rightmost(mapped)
+}
+
+/// Round-trip: map_focus is equivalent to get → transform → set.
+///
+/// Formula: $\forall t, f \Rightarrow \text{map\_focus}(z, f) = \text{set\_standard\_tree}(z, f(\text{get\_standard\_tree}(z)))$
+pub fn map_focus_round_trip_test() {
+  use tree <- qcheck.given(gen_rose_tree())
+  let zipper = rose_tree.from_standard_tree(tree)
+  let f = fn(t: rose_tree.RoseTree(Int)) {
+    rose_tree.RoseTree(..t, value: t.value * 2)
+  }
+
+  let way1 = rose_tree.map_focus(zipper, f)
+  let way2 =
+    rose_tree.set_standard_tree(zipper, f(rose_tree.get_standard_tree(zipper)))
+
+  assert rose_tree.to_standard_tree(way1) == rose_tree.to_standard_tree(way2)
+}
+
+//
+// generators
+//
+
+/// Generates a rose tree of arbitrary shape and size.
+///
+/// Uses a depth-biased recursive construction.  The maximum depth is fixed
+/// and small, and each node has at most three children, so generated trees
+/// stay small and shrinking remains fast.
+fn gen_rose_tree() {
+  let generator = {
+    use self, size <- fixpoint
+    case size {
+      0 ->
+        qcheck.map(qcheck.small_non_negative_int(), rose_tree.RoseTree(_, []))
+      n -> {
+        use value <- qcheck.bind(qcheck.small_non_negative_int())
+        use children <- qcheck.map(qcheck.generic_list(
+          self(n / 2),
+          qcheck.bounded_int(0, 3),
+        ))
+        rose_tree.RoseTree(value, children)
+      }
+    }
+  }
+
+  qcheck.sized_from(generator, qcheck.small_non_negative_int())
+}
+
+fn fixpoint(
+  f: fn(fn(a) -> qcheck.Generator(b), a) -> qcheck.Generator(b),
+) -> fn(a) -> qcheck.Generator(b) {
+  fn(x) { f(fixpoint(f), x) }
 }
