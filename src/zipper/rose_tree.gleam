@@ -413,6 +413,36 @@ pub fn update(zipper: Zipper(a), updater: fn(a) -> a) -> Zipper(a) {
   set_value(zipper, new_value)
 }
 
+/// Maps the current focus of the rose tree using a transformation function.
+///
+/// Unlike [`update`](#update), which only transforms the value of the focus node,
+/// `map_focus` allows you to transform both the value and the children of the focus
+/// node by providing a function that receives the current `RoseTree(a)` and returns
+/// a new `RoseTree(a)`.
+///
+/// ## Examples
+/// ```gleam
+/// let zipper = from_standard_tree(RoseTree(10, []))
+/// let zipper =
+///   map_focus(zipper, fn(t) {
+///     RoseTree(..t, children: [
+///       RoseTree(value: 1, children: []),
+///       RoseTree(value: 2, children: []),
+///       RoseTree(value: 3, children: []),
+///     ])
+///   })
+/// let assert Ok(zipper) = go_down(zipper)
+///
+/// get_value(zipper)
+/// // => 1
+/// ```
+pub fn map_focus(
+  zipper: Zipper(a),
+  updater: fn(RoseTree(a)) -> RoseTree(a),
+) -> Zipper(a) {
+  Zipper(..zipper, focus: updater(zipper.focus))
+}
+
 /// Inserts a new tree as the immediate left sibling of the current node.
 ///
 /// Returns `Ok(zipper)` with the new sibling inserted.
