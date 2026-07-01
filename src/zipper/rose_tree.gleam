@@ -151,11 +151,8 @@ pub fn from_tree(
   users_tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> Zipper(a) {
-  let value = adapter.get_value(users_tree)
-  let children =
-    adapter.get_children(users_tree)
-    |> list.map(user_tree_to_standard_tree(_, adapter))
-  from_standard_tree(RoseTree(value:, children:))
+  user_tree_to_standard_tree(users_tree, adapter)
+  |> from_standard_tree
 }
 
 /// Converts a zipper back to a user-defined tree using an adapter.
@@ -398,9 +395,7 @@ pub fn get_tree(
   adapter: Adapter(a, user_tree),
 ) -> user_tree {
   let tree = get_standard_tree(zipper)
-  let user_children =
-    list.map(tree.children, standard_tree_to_user_tree(_, adapter))
-  adapter.build_node(tree.value, user_children)
+  standard_tree_to_user_tree(tree, adapter)
 }
 
 /// Sets the value of the current focus node.
@@ -448,11 +443,7 @@ pub fn set_tree(
   tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> Zipper(a) {
-  let value = adapter.get_value(tree)
-  let children =
-    adapter.get_children(tree)
-    |> list.map(user_tree_to_standard_tree(_, adapter))
-  let new_focus = RoseTree(value, children)
+  let new_focus = user_tree_to_standard_tree(tree, adapter)
   set_standard_tree(zipper, new_focus)
 }
 
