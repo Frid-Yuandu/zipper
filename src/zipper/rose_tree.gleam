@@ -57,16 +57,14 @@ pub type RoseTree(a) {
 /// and the standard rose tree representation used by the zipper.
 ///
 /// - `get_value`: Extracts the node value from a user tree node.
-/// - `get_children`: Returns a list of standard `RoseTree` children. Note that the
-///   implementer of this function is responsible for converting the user-defined
-///   child nodes into the standard `RoseTree` format.
-/// - `build_node`: Constructs a user tree node from a value and a list of standard
-///   `RoseTree` children.
+/// - `get_children`: Returns a list of user-defined child subtrees.
+/// - `build_node`: Constructs a user tree node from a value and a list of user-defined
+///   child subtrees.
 pub type Adapter(a, user_rose_tree) {
   Adapter(
     get_value: fn(user_rose_tree) -> a,
-    get_children: fn(user_rose_tree) -> List(RoseTree(a)),
-    build_node: fn(a, List(RoseTree(a))) -> user_rose_tree,
+    get_children: fn(user_rose_tree) -> List(user_rose_tree),
+    build_node: fn(a, List(user_rose_tree)) -> user_rose_tree,
   )
 }
 
@@ -154,7 +152,9 @@ pub fn from_tree(
   adapter: Adapter(a, user_tree),
 ) -> Zipper(a) {
   let value = adapter.get_value(users_tree)
-  let children = adapter.get_children(users_tree)
+  let children =
+    adapter.get_children(users_tree)
+    |> list.map(user_tree_to_standard_tree(_, adapter))
   from_standard_tree(RoseTree(value:, children:))
 }
 
@@ -169,7 +169,27 @@ pub fn from_tree(
 /// ```
 pub fn to_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
   let tree = to_standard_tree(zipper)
-  adapter.build_node(tree.value, tree.children)
+  standard_tree_to_user_tree(tree, adapter)
+}
+
+fn standard_tree_to_user_tree(
+  tree: RoseTree(a),
+  adapter: Adapter(a, user_tree),
+) -> user_tree {
+  let user_children =
+    list.map(tree.children, standard_tree_to_user_tree(_, adapter))
+  adapter.build_node(tree.value, user_children)
+}
+
+fn user_tree_to_standard_tree(
+  tree: user_tree,
+  adapter: Adapter(a, user_tree),
+) -> RoseTree(a) {
+  let value = adapter.get_value(tree)
+  let children =
+    adapter.get_children(tree)
+    |> list.map(user_tree_to_standard_tree(_, adapter))
+  RoseTree(value, children)
 }
 
 /// Moves the focus to the left sibling of the current node.
@@ -378,7 +398,9 @@ pub fn get_tree(
   adapter: Adapter(a, user_tree),
 ) -> user_tree {
   let tree = get_standard_tree(zipper)
-  adapter.build_node(tree.value, tree.children)
+  let user_children =
+    list.map(tree.children, standard_tree_to_user_tree(_, adapter))
+  adapter.build_node(tree.value, user_children)
 }
 
 /// Sets the value of the current focus node.
@@ -427,7 +449,9 @@ pub fn set_tree(
   adapter: Adapter(a, user_tree),
 ) -> Zipper(a) {
   let value = adapter.get_value(tree)
-  let children = adapter.get_children(tree)
+  let children =
+    adapter.get_children(tree)
+    |> list.map(user_tree_to_standard_tree(_, adapter))
   let new_focus = RoseTree(value, children)
   set_standard_tree(zipper, new_focus)
 }

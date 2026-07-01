@@ -8,34 +8,13 @@ type MyRoseTree(a) {
   MyRoseTree(value: a, children: List(MyRoseTree(a)))
 }
 
-fn standard_to_my_rose_tree(t: rose_tree.RoseTree(a)) -> MyRoseTree(a) {
-  MyRoseTree(
-    value: t.value,
-    children: list.map(t.children, standard_to_my_rose_tree),
-  )
-}
-
-fn my_rose_tree_to_standard(t: MyRoseTree(a)) -> rose_tree.RoseTree(a) {
-  rose_tree.RoseTree(
-    value: t.value,
-    children: list.map(t.children, my_rose_tree_to_standard),
-  )
-}
-
 fn my_rose_tree_adapter() -> rose_tree.Adapter(a, MyRoseTree(a)) {
   let get_value = fn(t: MyRoseTree(a)) -> a { t.value }
 
-  let get_children = fn(t: MyRoseTree(a)) -> List(rose_tree.RoseTree(a)) {
-    list.map(t.children, my_rose_tree_to_standard)
-  }
+  let get_children = fn(t: MyRoseTree(a)) -> List(MyRoseTree(a)) { t.children }
 
-  let build_node = fn(val: a, children: List(rose_tree.RoseTree(a))) -> MyRoseTree(
-    a,
-  ) {
-    MyRoseTree(
-      value: val,
-      children: list.map(children, standard_to_my_rose_tree),
-    )
+  let build_node = fn(val: a, children: List(MyRoseTree(a))) -> MyRoseTree(a) {
+    MyRoseTree(value: val, children:)
   }
 
   rose_tree.Adapter(

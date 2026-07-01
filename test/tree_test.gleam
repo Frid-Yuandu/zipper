@@ -7,14 +7,6 @@ type MyTree(a) {
   MyNode(a, MyTree(a), MyTree(a))
 }
 
-fn standard_to_my_tree(t: tree.Tree(a)) -> MyTree(a) {
-  case t {
-    tree.Leaf -> MyLeaf
-    tree.Node(v, l, r) ->
-      MyNode(v, standard_to_my_tree(l), standard_to_my_tree(r))
-  }
-}
-
 fn my_tree_adapter() -> tree.Adapter(a, MyTree(a)) {
   let get_value = fn(t: MyTree(a)) -> Option(a) {
     case t {
@@ -42,17 +34,17 @@ fn my_tree_adapter() -> tree.Adapter(a, MyTree(a)) {
 
   let build_node = fn(
     val: Option(a),
-    children: #(Option(tree.Tree(a)), Option(tree.Tree(a))),
+    children: #(Option(MyTree(a)), Option(MyTree(a))),
   ) -> MyTree(a) {
     case val {
       None -> MyLeaf
       Some(v) -> {
         let left = case children {
-          #(Some(l), _) -> standard_to_my_tree(l)
+          #(Some(l), _) -> l
           _ -> MyLeaf
         }
         let right = case children {
-          #(_, Some(r)) -> standard_to_my_tree(r)
+          #(_, Some(r)) -> r
           _ -> MyLeaf
         }
         MyNode(v, left, right)

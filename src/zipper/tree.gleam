@@ -53,23 +53,24 @@ pub type Tree(a) {
 /// The adapter provides functions to convert between a user-defined tree structure
 /// and the standard binary tree representation used by the zipper.
 ///
-// - `get_value`: Extracts the node value from a user tree node. Returns `None` for
-
+/// - `get_value`: Extracts the node value from a user tree node. Returns `None` for
 ///   leaf nodes, which correspond to the standard tree's `Leaf` constructor.
 /// - `get_children`: Returns a tuple `#(left, right)` where `left` and `right` are
 ///   optional user tree nodes representing the left and right subtrees respectively.
 /// - `build_node`: Constructs a user tree node from an optional value and a tuple
-///   of optional standard tree subtrees. A `None` value corresponds to a leaf node.
+///   of optional user tree subtrees. A `None` value corresponds to a leaf node.
 ///
 /// The mapping between user tree nodes and standard tree nodes is:
 /// - User tree node with `None` value ↔ Standard tree `Leaf`
 /// - User tree node with `Some(value)` ↔ Standard tree `Node(value, left, right)`
-/// - The tuple `#(left, right)` in both directions represents left and right subtrees
+/// - The tuple `#(left, right)` in both directions represents left and right
+///   user tree subtrees
 pub type Adapter(a, user_tree) {
   Adapter(
     get_value: fn(user_tree) -> Option(a),
     get_children: fn(user_tree) -> #(Option(user_tree), Option(user_tree)),
-    build_node: fn(Option(a), #(Option(Tree(a)), Option(Tree(a)))) -> user_tree,
+    build_node: fn(Option(a), #(Option(user_tree), Option(user_tree))) ->
+      user_tree,
   )
 }
 
@@ -195,9 +196,21 @@ fn standard_tree_to_user_tree(
   let #(value, children) = case tree {
     Leaf -> #(None, #(None, None))
     Node(value:, left: Leaf, right: Leaf) -> #(Some(value), #(None, None))
-    Node(value:, left:, right: Leaf) -> #(Some(value), #(Some(left), None))
-    Node(value:, left: Leaf, right:) -> #(Some(value), #(None, Some(right)))
-    Node(value:, left:, right:) -> #(Some(value), #(Some(left), Some(right)))
+    Node(value:, left:, right: Leaf) -> #(
+      Some(value),
+      #(Some(standard_tree_to_user_tree(left, adapter)), None),
+    )
+    Node(value:, left: Leaf, right:) -> #(
+      Some(value),
+      #(None, Some(standard_tree_to_user_tree(right, adapter))),
+    )
+    Node(value:, left:, right:) -> #(
+      Some(value),
+      #(
+        Some(standard_tree_to_user_tree(left, adapter)),
+        Some(standard_tree_to_user_tree(right, adapter)),
+      ),
+    )
   }
   adapter.build_node(value, children)
 }
