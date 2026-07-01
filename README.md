@@ -1,6 +1,6 @@
 # Gleam Zipper
 
-[![Package Version](https://img.shields.io/hexpm/v/gleam_zipper)](https://hex.pm/packages/gleamy_zipper)
+[![Package Version](https://img.shields.io/hexpm/v/gleamy_zipper)](https://hex.pm/packages/gleamy_zipper)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/gleamy_zipper/)
 [![Build Status](https://github.com/Frid-Yuandu/zipper/workflows/test/badge.svg)](https://github.com/Frid-Yuandu/zipper/actions)
 
@@ -35,11 +35,11 @@ This library provides zippers for:
 
 ## Installation
 
-Add `gleam_zipper` to your `gleam.toml` dependencies:
+Add `gleamy_zipper` to your `gleam.toml` dependencies:
 
 ```toml
 [dependencies]
-gleam_zipper = "~> 0.1.1"
+gleamy_zipper = "~> 0.1.1"
 ```
 
 ## Usage
