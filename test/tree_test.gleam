@@ -285,6 +285,24 @@ pub fn doc_go_right_test() {
   assert tree.get_value(zipper) == Ok(3)
 }
 
+// go_to_root examples
+pub fn doc_go_to_root_test() {
+  let zipper =
+    tree.from_standard_tree(tree.Node(
+      1,
+      tree.Node(2, tree.Leaf, tree.Leaf),
+      tree.Leaf,
+    ))
+  let assert Ok(child_zipper) = tree.go_left(zipper)
+  assert tree.get_value(child_zipper) == Ok(2)
+
+  let root_zipper = tree.go_to_root(child_zipper)
+  assert tree.is_root(root_zipper) == True
+  assert tree.get_value(root_zipper) == Ok(1)
+  assert tree.to_standard_tree(root_zipper)
+    == tree.Node(1, tree.Node(2, tree.Leaf, tree.Leaf), tree.Leaf)
+}
+
 // go_up examples
 pub fn doc_go_up_test() {
   let zipper =

@@ -260,7 +260,10 @@ pub fn get_standard_tree(zipper: Zipper(a)) -> Tree(a) {
 ///
 /// // `focused_subtree` is an instance of the custom tree type.
 /// ```
-pub fn get_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
+pub fn get_tree(
+  zipper: Zipper(a),
+  adapter: Adapter(a, user_tree),
+) -> user_tree {
   get_standard_tree(zipper)
   |> standard_tree_to_user_tree(adapter)
 }
@@ -340,7 +343,10 @@ pub fn set_tree(
 /// }
 /// // => Ok(2)
 /// ```
-pub fn update(zipper: Zipper(a), updater: fn(a) -> a) -> Result(Zipper(a), Nil) {
+pub fn update(
+  zipper: Zipper(a),
+  updater: fn(a) -> a,
+) -> Result(Zipper(a), Nil) {
   case zipper {
     Zipper(_, focus: Leaf) -> Error(Nil)
     Zipper(_, focus: Node(value:, ..) as focus) ->
@@ -585,5 +591,29 @@ pub fn go_up(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
       Ok(Zipper(thread:, focus: Node(value:, left: focus, right:)))
     Zipper(thread: [Right(value:, sibling: left), ..thread], focus:) ->
       Ok(Zipper(thread:, focus: Node(value:, left:, right: focus)))
+  }
+}
+
+/// Moves the focus back to the root of the tree.
+///
+/// This operation is infallible: it always succeeds and returns a new zipper
+/// focused at the root node while preserving the underlying tree structure.
+///
+/// This function takes $O(d)$ time, where $d$ is the depth of the current focus.
+///
+/// ## Examples
+/// ```gleam
+/// let zipper = from_standard_tree(Node(1, Node(2, Leaf, Leaf), Leaf))
+/// let assert Ok(child_zipper) = go_left(zipper)
+/// assert get_value(child_zipper) == Ok(2)
+///
+/// let root_zipper = go_to_root(child_zipper)
+/// assert is_root(root_zipper) == True
+/// assert get_value(root_zipper) == Ok(1)
+/// ```
+pub fn go_to_root(zipper: Zipper(a)) -> Zipper(a) {
+  case go_up(zipper) {
+    Ok(zipper) -> go_to_root(zipper)
+    Error(Nil) -> zipper
   }
 }
