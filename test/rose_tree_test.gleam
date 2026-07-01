@@ -120,6 +120,22 @@ pub fn doc_go_right_test() {
   assert rose_tree.get_value(zipper) == 3
 }
 
+// go_to_root examples
+pub fn doc_go_to_root_test() {
+  let tree =
+    rose_tree.RoseTree(1, [
+      rose_tree.RoseTree(2, [rose_tree.RoseTree(3, [])]),
+    ])
+  let zipper = rose_tree.from_standard_tree(tree)
+  let assert Ok(child_zipper) = rose_tree.go_down(zipper)
+  assert rose_tree.get_value(child_zipper) == 2
+
+  let root_zipper = rose_tree.go_to_root(child_zipper)
+  assert rose_tree.is_root(root_zipper) == True
+  assert rose_tree.get_value(root_zipper) == 1
+  assert rose_tree.to_standard_tree(root_zipper) == tree
+}
+
 // go_up examples
 pub fn doc_go_up_test() {
   let tree = rose_tree.RoseTree(1, [rose_tree.RoseTree(2, [])])

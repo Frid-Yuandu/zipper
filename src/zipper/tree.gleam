@@ -587,3 +587,27 @@ pub fn go_up(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
       Ok(Zipper(thread:, focus: Node(value:, left:, right: focus)))
   }
 }
+
+/// Moves the focus back to the root of the tree.
+///
+/// This operation is infallible: it always succeeds and returns a new zipper
+/// focused at the root node while preserving the underlying tree structure.
+///
+/// This function takes $O(d)$ time, where $d$ is the depth of the current focus.
+///
+/// ## Examples
+/// ```gleam
+/// let zipper = from_standard_tree(Node(1, Node(2, Leaf, Leaf), Leaf))
+/// let assert Ok(child_zipper) = go_left(zipper)
+/// assert get_value(child_zipper) == Ok(2)
+///
+/// let root_zipper = go_to_root(child_zipper)
+/// assert is_root(root_zipper) == True
+/// assert get_value(root_zipper) == Ok(1)
+/// ```
+pub fn go_to_root(zipper: Zipper(a)) -> Zipper(a) {
+  case go_up(zipper) {
+    Ok(zipper) -> go_to_root(zipper)
+    Error(Nil) -> zipper
+  }
+}

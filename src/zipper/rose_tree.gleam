@@ -281,6 +281,36 @@ pub fn go_up(zipper: Zipper(a)) -> Result(Zipper(a), Nil) {
   }
 }
 
+/// Moves the focus back to the root of the tree.
+///
+/// This operation is infallible: it always succeeds and returns a new zipper
+/// focused at the root node while preserving the underlying tree structure.
+///
+/// This function's running time depends on the path back to the root. Each
+/// `go_up` step takes $O(k_i)$ time, where $k_i$ is the number of left siblings
+/// at that level, so the total cost is $O(\sum_{i=1}^{d} k_i)$ for a focus at
+/// depth $d$. In the worst case — for example, a tree where every level is
+/// extremely wide on the left — this can be $O(n)$, where $n$ is the number of
+/// nodes in the tree.
+///
+/// ## Examples
+/// ```gleam
+/// let tree = RoseTree(1, [RoseTree(2, [RoseTree(3, [])])])
+/// let zipper = from_standard_tree(tree)
+/// let assert Ok(child_zipper) = go_down(zipper)
+/// assert get_value(child_zipper) == 2
+///
+/// let root_zipper = go_to_root(child_zipper)
+/// assert is_root(root_zipper) == True
+/// assert get_value(root_zipper) == 1
+/// ```
+pub fn go_to_root(zipper: Zipper(a)) -> Zipper(a) {
+  case go_up(zipper) {
+    Ok(zipper) -> go_to_root(zipper)
+    Error(Nil) -> zipper
+  }
+}
+
 /// Moves the focus to the first child of the current node.
 ///
 /// Returns `Ok(zipper)` focused on the first child if it exists.
