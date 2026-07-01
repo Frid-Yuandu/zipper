@@ -414,8 +414,9 @@ pub fn map_focus(
 /// ## Examples
 /// ```gleam
 /// let zipper = from_standard_tree(Node(1, Leaf, Leaf))
-/// let assert Ok(setted_zipper) = set_left(zipper, Node(2, Leaf, Leaf))
-/// setted_zipper
+/// let assert Ok(zipper) = set_left(zipper, Node(2, Leaf, Leaf))
+///
+/// get_standard_tree(zipper)
 /// // => Node(1, Node(2, Leaf, Leaf), Leaf)
 /// ```
 pub fn set_left(zipper: Zipper(a), left: Tree(a)) -> Result(Zipper(a), Nil) {
@@ -434,8 +435,9 @@ pub fn set_left(zipper: Zipper(a), left: Tree(a)) -> Result(Zipper(a), Nil) {
 /// ## Examples
 /// ```gleam
 /// let zipper = from_standard_tree(Node(1, Leaf, Leaf))
-/// let assert Ok(setted_zipper) = set_right(zipper, Node(3, Leaf, Leaf))
-/// setted_zipper
+/// let assert Ok(zipper) = set_right(zipper, Node(3, Leaf, Leaf))
+///
+/// get_standard_tree(zipper)
 /// // => Node(1, Leaf, Node(3, Leaf, Leaf))
 /// ```
 pub fn set_right(zipper: Zipper(a), right: Tree(a)) -> Result(Zipper(a), Nil) {
