@@ -210,7 +210,10 @@ pub fn set_value(zipper: Zipper(a), new_value: a) -> Result(Zipper(a), Nil) {
 /// to_list(updated)
 /// // => [2, 2, 3]
 /// ```
-pub fn update(zipper: Zipper(a), updater: fn(a) -> a) -> Result(Zipper(a), Nil) {
+pub fn update(
+  zipper: Zipper(a),
+  updater: fn(a) -> a,
+) -> Result(Zipper(a), Nil) {
   case zipper {
     Zipper(_, focus: []) -> Error(Nil)
     Zipper(_, focus: [current, ..rest]) ->

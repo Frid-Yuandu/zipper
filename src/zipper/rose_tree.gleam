@@ -373,7 +373,10 @@ pub fn get_standard_tree(zipper: Zipper(a)) -> RoseTree(a) {
 ///
 /// // `focused_subtree` is an instance of the custom tree type.
 /// ```
-pub fn get_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
+pub fn get_tree(
+  zipper: Zipper(a),
+  adapter: Adapter(a, user_tree),
+) -> user_tree {
   let tree = get_standard_tree(zipper)
   adapter.build_node(tree.value, tree.children)
 }

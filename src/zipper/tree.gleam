@@ -260,7 +260,10 @@ pub fn get_standard_tree(zipper: Zipper(a)) -> Tree(a) {
 ///
 /// // `focused_subtree` is an instance of the custom tree type.
 /// ```
-pub fn get_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
+pub fn get_tree(
+  zipper: Zipper(a),
+  adapter: Adapter(a, user_tree),
+) -> user_tree {
   get_standard_tree(zipper)
   |> standard_tree_to_user_tree(adapter)
 }
@@ -340,7 +343,10 @@ pub fn set_tree(
 /// }
 /// // => Ok(2)
 /// ```
-pub fn update(zipper: Zipper(a), updater: fn(a) -> a) -> Result(Zipper(a), Nil) {
+pub fn update(
+  zipper: Zipper(a),
+  updater: fn(a) -> a,
+) -> Result(Zipper(a), Nil) {
   case zipper {
     Zipper(_, focus: Leaf) -> Error(Nil)
     Zipper(_, focus: Node(value:, ..) as focus) ->
