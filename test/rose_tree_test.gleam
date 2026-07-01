@@ -1,4 +1,5 @@
 import gleam/list
+import helpers/generators
 import qcheck
 import zipper/rose_tree
 
@@ -456,7 +457,7 @@ pub fn map_focus_round_trip_test() {
 /// stay small and shrinking remains fast.
 fn gen_rose_tree() {
   let generator = {
-    use self, size <- fixpoint
+    use self, size <- generators.fixpoint()
     case size {
       0 ->
         qcheck.map(qcheck.small_non_negative_int(), rose_tree.RoseTree(_, []))
@@ -472,10 +473,4 @@ fn gen_rose_tree() {
   }
 
   qcheck.sized_from(generator, qcheck.small_non_negative_int())
-}
-
-fn fixpoint(
-  f: fn(fn(a) -> qcheck.Generator(b), a) -> qcheck.Generator(b),
-) -> fn(a) -> qcheck.Generator(b) {
-  fn(x) { f(fixpoint(f), x) }
 }
