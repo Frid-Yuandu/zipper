@@ -168,6 +168,10 @@ fn user_tree_to_standard_tree(
 
 /// Creates a zipper from a user-defined tree using an adapter.
 ///
+/// **Warning:** This function recursively converts the user-defined tree to the
+/// standard tree representation. For very deep or skewed trees this conversion
+/// can exhaust the call stack on both the Erlang and JavaScript targets.
+///
 /// ## Examples
 /// ```gleam
 /// // Given a user-defined tree `my_tree` and a corresponding `adapter`:
@@ -217,6 +221,10 @@ fn standard_tree_to_user_tree(
 
 /// Converts a zipper to a user-defined tree using an adapter.
 ///
+/// **Warning:** This function recursively converts the standard tree to the
+/// user-defined tree representation. For very deep or skewed trees this conversion
+/// can exhaust the call stack on both the Erlang and JavaScript targets.
+///
 /// ## Examples
 /// ```gleam
 /// // Given a `zipper` and a corresponding `adapter` for a custom tree type:
@@ -265,6 +273,10 @@ pub fn get_standard_tree(zipper: Zipper(a)) -> Tree(a) {
 }
 
 /// Gets the current focus subtree as a user-defined tree using an adapter.
+///
+/// **Warning:** This function recursively converts the standard focus tree to the
+/// user-defined tree representation. For very deep or skewed trees this conversion
+/// can exhaust the call stack on both the Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
@@ -324,6 +336,10 @@ pub fn set_standard_tree(zipper: Zipper(a), tree: Tree(a)) -> Zipper(a) {
 ///
 /// This replaces the entire focused subtree with the provided user tree
 /// after converting it to the standard tree representation.
+///
+/// **Warning:** This function recursively converts the user-defined subtree to the
+/// standard tree representation. For very deep or skewed trees this conversion
+/// can exhaust the call stack on both the Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
