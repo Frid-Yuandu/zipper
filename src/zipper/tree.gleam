@@ -33,12 +33,6 @@
 
 import gleam/option.{type Option, None, Some}
 
-// pub type TraverseOrder {
-//   PreOrder
-//   InOrder
-//   PostOrder
-// }
-
 /// A binary tree data structure.
 ///
 /// - `Leaf`: Represents an empty tree or terminal node
@@ -136,6 +130,54 @@ pub fn to_standard_tree(zipper: Zipper(a)) -> Tree(a) {
   }
 }
 
+/// Creates a zipper from a user-defined tree using an adapter.
+///
+/// **Warning:** This function recursively converts the user-defined tree to the
+/// standard tree representation. For very deep or skewed trees this conversion
+/// can exhaust the call stack on both the Erlang and JavaScript targets.
+///
+/// ## Examples
+/// ```gleam
+/// // Given a user-defined tree `my_tree` and a corresponding `adapter`:
+/// let zipper = from_tree(my_tree, adapter)
+///
+/// // The zipper can now be navigated and modified.
+/// get_value(zipper)
+/// // => Ok(root_value)
+/// ```
+pub fn from_tree(
+  user_tree: user_tree,
+  adapter: Adapter(a, user_tree),
+) -> Zipper(a) {
+  user_tree_to_standard_tree(user_tree, adapter)
+  |> from_standard_tree
+}
+
+/// Converts a zipper to a user-defined tree using an adapter.
+///
+/// **Warning:** This function recursively converts the standard tree to the
+/// user-defined tree representation. For very deep or skewed trees this conversion
+/// can exhaust the call stack on both the Erlang and JavaScript targets.
+///
+/// ## Examples
+/// ```gleam
+/// // Given a `zipper` and a corresponding `adapter` for a custom tree type:
+/// let my_tree = to_tree(zipper, adapter)
+///
+/// // `my_tree` is now an instance of the custom tree type.
+/// ```
+pub fn to_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
+  to_standard_tree(zipper)
+  |> standard_tree_to_user_tree(adapter)
+}
+
+type Frame(a, tree_type) {
+  Fresh(tree_type)
+  // The flags `is_left_present` and `is_right_present` determine the count and
+  // which side (left/right/both) of subtrees to be consumed.
+  Ready(a, is_left_present: Bool, is_right_present: Bool)
+}
+
 /// Converts a user-defined tree to a standard binary tree using an adapter.
 ///
 /// This internal function recursively converts a user tree structure to the
@@ -145,13 +187,6 @@ fn user_tree_to_standard_tree(
   adapter: Adapter(a, user_tree),
 ) -> Tree(a) {
   user_tree_to_standard_tree_iter([Fresh(user_tree)], [], adapter)
-}
-
-type Frame(a, tree_type) {
-  Fresh(tree_type)
-  // The flags `is_left_present` and `is_right_present` determine the count and
-  // which side (left/right/both) of subtrees to be consumed.
-  Ready(a, is_left_present: Bool, is_right_present: Bool)
 }
 
 fn user_tree_to_standard_tree_iter(
@@ -223,29 +258,6 @@ fn user_tree_to_standard_tree_iter(
       }
     }
   }
-}
-
-/// Creates a zipper from a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the user-defined tree to the
-/// standard tree representation. For very deep or skewed trees this conversion
-/// can exhaust the call stack on both the Erlang and JavaScript targets.
-///
-/// ## Examples
-/// ```gleam
-/// // Given a user-defined tree `my_tree` and a corresponding `adapter`:
-/// let zipper = from_tree(my_tree, adapter)
-///
-/// // The zipper can now be navigated and modified.
-/// get_value(zipper)
-/// // => Ok(root_value)
-/// ```
-pub fn from_tree(
-  user_tree: user_tree,
-  adapter: Adapter(a, user_tree),
-) -> Zipper(a) {
-  user_tree_to_standard_tree(user_tree, adapter)
-  |> from_standard_tree
 }
 
 /// Converts a standard binary tree to a user-defined tree using an adapter.
@@ -321,24 +333,6 @@ fn standard_tree_to_user_tree_iter(
       }
     }
   }
-}
-
-/// Converts a zipper to a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the standard tree to the
-/// user-defined tree representation. For very deep or skewed trees this conversion
-/// can exhaust the call stack on both the Erlang and JavaScript targets.
-///
-/// ## Examples
-/// ```gleam
-/// // Given a `zipper` and a corresponding `adapter` for a custom tree type:
-/// let my_tree = to_tree(zipper, adapter)
-///
-/// // `my_tree` is now an instance of the custom tree type.
-/// ```
-pub fn to_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
-  to_standard_tree(zipper)
-  |> standard_tree_to_user_tree(adapter)
 }
 
 /// Gets the value of the current focus node.
