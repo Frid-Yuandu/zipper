@@ -141,10 +141,10 @@ pub fn to_standard_tree(zipper: Zipper(a)) -> Tree(a) {
 /// This internal function recursively converts a user tree structure to the
 /// standard tree representation used by the zipper.
 fn user_tree_to_standard_tree(
-  users_tree: user_tree,
+  user_tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> Tree(a) {
-  user_tree_to_standard_tree_iter([Fresh(users_tree)], [], adapter)
+  user_tree_to_standard_tree_iter([Fresh(user_tree)], [], adapter)
 }
 
 type Frame(a, tree_type) {
@@ -241,10 +241,10 @@ fn user_tree_to_standard_tree_iter(
 /// // => Ok(root_value)
 /// ```
 pub fn from_tree(
-  users_tree: user_tree,
+  user_tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> Zipper(a) {
-  user_tree_to_standard_tree(users_tree, adapter)
+  user_tree_to_standard_tree(user_tree, adapter)
   |> from_standard_tree
 }
 
@@ -455,10 +455,10 @@ pub fn set_standard_tree(zipper: Zipper(a), tree: Tree(a)) -> Zipper(a) {
 /// ```
 pub fn set_tree(
   zipper: Zipper(a),
-  users_tree: user_tree,
+  user_tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> Zipper(a) {
-  let tree = user_tree_to_standard_tree(users_tree, adapter)
+  let tree = user_tree_to_standard_tree(user_tree, adapter)
   Zipper(..zipper, focus: tree)
 }
 

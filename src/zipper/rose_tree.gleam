@@ -60,11 +60,11 @@ pub type RoseTree(a) {
 /// - `get_children`: Returns a list of user-defined child subtrees.
 /// - `build_node`: Constructs a user tree node from a value and a list of user-defined
 ///   child subtrees.
-pub type Adapter(a, user_rose_tree) {
+pub type Adapter(a, user_tree) {
   Adapter(
-    get_value: fn(user_rose_tree) -> a,
-    get_children: fn(user_rose_tree) -> List(user_rose_tree),
-    build_node: fn(a, List(user_rose_tree)) -> user_rose_tree,
+    get_value: fn(user_tree) -> a,
+    get_children: fn(user_tree) -> List(user_tree),
+    build_node: fn(a, List(user_tree)) -> user_tree,
   )
 }
 
@@ -153,10 +153,10 @@ pub fn to_standard_tree(zipper: Zipper(a)) -> RoseTree(a) {
 /// // => root_value
 /// ```
 pub fn from_tree(
-  users_tree: user_tree,
+  user_tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> Zipper(a) {
-  user_tree_to_standard_tree(users_tree, adapter)
+  user_tree_to_standard_tree(user_tree, adapter)
   |> from_standard_tree
 }
 
@@ -198,8 +198,8 @@ fn standard_tree_to_user_tree_iter(
 ) -> user_rose_tree {
   case stack {
     [] -> {
-      let assert [user_rose_tree, ..] = result
-      user_rose_tree
+      let assert [user_tree, ..] = result
+      user_tree
     }
 
     [Fresh(RoseTree(value:, children:)), ..rest] -> {
@@ -237,7 +237,7 @@ fn user_tree_to_standard_tree_iter(
     }
 
     [Fresh(tree), ..rest] -> {
-  let value = adapter.get_value(tree)
+      let value = adapter.get_value(tree)
       let children = adapter.get_children(tree)
 
       let children_count = list.length(children)
