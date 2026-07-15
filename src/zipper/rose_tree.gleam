@@ -198,7 +198,7 @@ fn user_tree_to_standard_tree_iter(
 ) -> RoseTree(a) {
   case stack {
     [] -> {
-      let assert [tree, ..] = result
+      let assert [tree] = result
       tree
     }
 
@@ -235,7 +235,7 @@ fn standard_tree_to_user_tree_iter(
 ) -> user_rose_tree {
   case stack {
     [] -> {
-      let assert [user_tree, ..] = result
+      let assert [user_tree] = result
       user_tree
     }
 
