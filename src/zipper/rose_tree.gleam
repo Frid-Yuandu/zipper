@@ -179,24 +179,80 @@ pub fn to_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
   standard_tree_to_user_tree(tree, adapter)
 }
 
+type Frame(a, tree_type) {
+  Fresh(tree_type)
+  Ready(value: a, children_count: Int)
+}
+
 fn standard_tree_to_user_tree(
   tree: RoseTree(a),
   adapter: Adapter(a, user_tree),
 ) -> user_tree {
-  let user_children =
-    list.map(tree.children, standard_tree_to_user_tree(_, adapter))
-  adapter.build_node(tree.value, user_children)
+  standard_tree_to_user_tree_iter([Fresh(tree)], [], adapter)
+}
+
+fn standard_tree_to_user_tree_iter(
+  stack: List(Frame(a, RoseTree(a))),
+  result: List(user_rose_tree),
+  adapter: Adapter(a, user_rose_tree),
+) -> user_rose_tree {
+  case stack {
+    [] -> {
+      let assert [user_rose_tree, ..] = result
+      user_rose_tree
+    }
+
+    [Fresh(RoseTree(value:, children:)), ..rest] -> {
+      let children_count = list.length(children)
+      let current_frame = Ready(value:, children_count:)
+      let stack =
+        list.map(children, Fresh) |> list.append([current_frame, ..rest])
+      standard_tree_to_user_tree_iter(stack, result, adapter)
+    }
+
+    [Ready(value:, children_count:), ..stack] -> {
+      let #(children, remaining) = list.split(result, children_count)
+      let node = adapter.build_node(value, list.reverse(children))
+      standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
+    }
+  }
 }
 
 fn user_tree_to_standard_tree(
   tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> RoseTree(a) {
+  user_tree_to_standard_tree_iter([Fresh(tree)], [], adapter)
+}
+
+fn user_tree_to_standard_tree_iter(
+  stack: List(Frame(a, user_tree)),
+  result: List(RoseTree(a)),
+  adapter: Adapter(a, user_tree),
+) -> RoseTree(a) {
+  case stack {
+    [] -> {
+      let assert [tree, ..] = result
+      tree
+    }
+
+    [Fresh(tree), ..rest] -> {
   let value = adapter.get_value(tree)
-  let children =
-    adapter.get_children(tree)
-    |> list.map(user_tree_to_standard_tree(_, adapter))
-  RoseTree(value, children)
+      let children = adapter.get_children(tree)
+
+      let children_count = list.length(children)
+      let current_frame = Ready(value:, children_count:)
+      let stack =
+        list.map(children, Fresh) |> list.append([current_frame, ..rest])
+      user_tree_to_standard_tree_iter(stack, result, adapter)
+    }
+
+    [Ready(value:, children_count:), ..stack] -> {
+      let #(children, remaining) = list.split(result, children_count)
+      let node = RoseTree(value:, children: list.reverse(children))
+      user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
+    }
+  }
 }
 
 /// Moves the focus to the left sibling of the current node.
