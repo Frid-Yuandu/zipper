@@ -138,11 +138,6 @@ pub fn to_standard_tree(zipper: Zipper(a)) -> RoseTree(a) {
 
 /// Creates a zipper from a user-defined tree using an adapter.
 ///
-/// **Warning:** This function recursively converts the user-defined tree to the
-/// standard tree representation. For very deep trees, such as a long chain of
-/// single-child nodes, this conversion can exhaust the call stack on both the
-/// Erlang and JavaScript targets.
-///
 /// ## Examples
 /// ```gleam
 /// // Given a user-defined tree `my_tree` and a corresponding `adapter`:
@@ -161,11 +156,6 @@ pub fn from_tree(
 }
 
 /// Converts a zipper back to a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the standard tree to the
-/// user-defined tree representation. For very deep trees, such as a long chain of
-/// single-child nodes, this conversion can exhaust the call stack on both the
-/// Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
@@ -449,11 +439,6 @@ pub fn get_standard_tree(zipper: Zipper(a)) -> RoseTree(a) {
 
 /// Gets the current focus subtree as a user-defined tree using an adapter.
 ///
-/// **Warning:** This function recursively converts the standard focus tree to the
-/// user-defined tree representation. For very deep trees, such as a long chain of
-/// single-child nodes, this conversion can exhaust the call stack on both the
-/// Erlang and JavaScript targets.
-///
 /// ## Examples
 /// ```gleam
 /// // Given a `zipper` and a corresponding `adapter` for a custom tree type:
@@ -500,11 +485,6 @@ pub fn set_standard_tree(zipper: Zipper(a), tree: RoseTree(a)) -> Zipper(a) {
 }
 
 /// Sets the current focus subtree to a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the user-defined subtree to the
-/// standard tree representation. For very deep trees, such as a long chain of
-/// single-child nodes, this conversion can exhaust the call stack on both the
-/// Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam

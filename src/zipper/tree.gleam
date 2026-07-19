@@ -132,10 +132,6 @@ pub fn to_standard_tree(zipper: Zipper(a)) -> Tree(a) {
 
 /// Creates a zipper from a user-defined tree using an adapter.
 ///
-/// **Warning:** This function recursively converts the user-defined tree to the
-/// standard tree representation. For very deep or skewed trees this conversion
-/// can exhaust the call stack on both the Erlang and JavaScript targets.
-///
 /// ## Examples
 /// ```gleam
 /// // Given a user-defined tree `my_tree` and a corresponding `adapter`:
@@ -154,10 +150,6 @@ pub fn from_tree(
 }
 
 /// Converts a zipper to a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the standard tree to the
-/// user-defined tree representation. For very deep or skewed trees this conversion
-/// can exhaust the call stack on both the Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
@@ -233,23 +225,23 @@ fn user_tree_to_standard_tree_iter(
     }
 
     [BuildBothLeaf(value), ..stack] -> {
-          let node = Node(value:, left: Leaf, right: Leaf)
-          user_tree_to_standard_tree_iter(stack, [node, ..result], adapter)
-        }
+      let node = Node(value:, left: Leaf, right: Leaf)
+      user_tree_to_standard_tree_iter(stack, [node, ..result], adapter)
+    }
     [BuildOnlyLeftNode(value), ..stack] -> {
       let assert [left, ..remaining] = result
       let node = Node(value:, left:, right: Leaf)
       user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
     }
     [BuildOnlyRightNode(value), ..stack] -> {
-          let assert [right, ..remaining] = result
-          let node = Node(value:, left: Leaf, right:)
-          user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
-        }
+      let assert [right, ..remaining] = result
+      let node = Node(value:, left: Leaf, right:)
+      user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
+    }
     [BuildBothNode(value), ..stack] -> {
-          let assert [right, left, ..remaining] = result
-          let node = Node(value:, left:, right:)
-          user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
+      let assert [right, left, ..remaining] = result
+      let node = Node(value:, left:, right:)
+      user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
     }
   }
 }
@@ -303,24 +295,24 @@ fn standard_tree_to_user_tree_iter(
       }
 
     [BuildBothLeaf(value), ..stack] -> {
-          let node = adapter.build_node(Some(value), #(None, None))
-          let result = [node, ..result]
-          standard_tree_to_user_tree_iter(stack, result, adapter)
-        }
+      let node = adapter.build_node(Some(value), #(None, None))
+      let result = [node, ..result]
+      standard_tree_to_user_tree_iter(stack, result, adapter)
+    }
     [BuildOnlyLeftNode(value), ..stack] -> {
       let assert [left, ..remaining] = result
       let node = adapter.build_node(Some(value), #(Some(left), None))
       standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
     }
     [BuildOnlyRightNode(value), ..stack] -> {
-          let assert [right, ..remaining] = result
-          let node = adapter.build_node(Some(value), #(None, Some(right)))
-          standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
-        }
+      let assert [right, ..remaining] = result
+      let node = adapter.build_node(Some(value), #(None, Some(right)))
+      standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
+    }
     [BuildBothNode(value), ..stack] -> {
-          let assert [right, left, ..remaining] = result
-          let node = adapter.build_node(Some(value), #(Some(left), Some(right)))
-          standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
+      let assert [right, left, ..remaining] = result
+      let node = adapter.build_node(Some(value), #(Some(left), Some(right)))
+      standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
     }
   }
 }
@@ -361,10 +353,6 @@ pub fn get_standard_tree(zipper: Zipper(a)) -> Tree(a) {
 }
 
 /// Gets the current focus subtree as a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the standard focus tree to the
-/// user-defined tree representation. For very deep or skewed trees this conversion
-/// can exhaust the call stack on both the Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
@@ -424,10 +412,6 @@ pub fn set_standard_tree(zipper: Zipper(a), tree: Tree(a)) -> Zipper(a) {
 ///
 /// This replaces the entire focused subtree with the provided user tree
 /// after converting it to the standard tree representation.
-///
-/// **Warning:** This function recursively converts the user-defined subtree to the
-/// standard tree representation. For very deep or skewed trees this conversion
-/// can exhaust the call stack on both the Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
