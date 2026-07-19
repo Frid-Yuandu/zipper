@@ -172,10 +172,11 @@ pub fn to_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
 }
 
 type Frame(a, tree_type) {
-  Fresh(tree_type)
-  // The flags `is_left_present` and `is_right_present` determine the count and
-  // which side (left/right/both) of subtrees to be consumed.
-  Ready(a, is_left_present: Bool, is_right_present: Bool)
+  Visit(tree_type)
+  BuildBothLeaf(a)
+  BuildOnlyLeftNode(a)
+  BuildOnlyRightNode(a)
+  BuildBothNode(a)
 }
 
 /// Converts a user-defined tree to a standard binary tree using an adapter.
@@ -186,7 +187,7 @@ fn user_tree_to_standard_tree(
   user_tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> Tree(a) {
-  user_tree_to_standard_tree_iter([Fresh(user_tree)], [], adapter)
+  user_tree_to_standard_tree_iter([Visit(user_tree)], [], adapter)
 }
 
 fn user_tree_to_standard_tree_iter(
@@ -200,62 +201,55 @@ fn user_tree_to_standard_tree_iter(
       tree
     }
 
-    [Fresh(user_tree), ..rest] -> {
+    [Visit(user_tree), ..rest] -> {
       let value = adapter.get_value(user_tree)
       let children = adapter.get_children(user_tree)
       case value, children {
         // leaf node
-        None, #(_, _) ->
+        None, #(None, None) ->
           user_tree_to_standard_tree_iter(rest, [Leaf, ..result], adapter)
+        None, #(_, _) ->
+          panic as "Node return `None` value must return `#(None, None)` for children"
 
         Some(value), #(None, None) -> {
-          let stack = [Ready(value, False, False), ..rest]
-          user_tree_to_standard_tree_iter(stack, result, adapter)
-        }
-        Some(value), #(None, Some(right)) -> {
-          let stack = [Fresh(right), Ready(value, False, True), ..rest]
+          let stack = [BuildBothLeaf(value), ..rest]
           user_tree_to_standard_tree_iter(stack, result, adapter)
         }
         Some(value), #(Some(left), None) -> {
-          let stack = [Fresh(left), Ready(value, True, False), ..rest]
+          let stack = [Visit(left), BuildOnlyLeftNode(value), ..rest]
+          user_tree_to_standard_tree_iter(stack, result, adapter)
+        }
+        Some(value), #(None, Some(right)) -> {
+          let stack = [Visit(right), BuildOnlyRightNode(value), ..rest]
           user_tree_to_standard_tree_iter(stack, result, adapter)
         }
         Some(value), #(Some(left), Some(right)) -> {
           // push stack: left -> right -> root
           // consume subtree: root -> right -> left
-          let stack = [
-            Fresh(left),
-            Fresh(right),
-            Ready(value, True, True),
-            ..rest
-          ]
+          let stack = [Visit(left), Visit(right), BuildBothNode(value), ..rest]
           user_tree_to_standard_tree_iter(stack, result, adapter)
         }
       }
     }
 
-    [Ready(value, is_left_present, is_right_present), ..stack] -> {
-      case is_left_present, is_right_present {
-        False, False -> {
+    [BuildBothLeaf(value), ..stack] -> {
           let node = Node(value:, left: Leaf, right: Leaf)
           user_tree_to_standard_tree_iter(stack, [node, ..result], adapter)
         }
-        False, True -> {
+    [BuildOnlyLeftNode(value), ..stack] -> {
+      let assert [left, ..remaining] = result
+      let node = Node(value:, left:, right: Leaf)
+      user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
+    }
+    [BuildOnlyRightNode(value), ..stack] -> {
           let assert [right, ..remaining] = result
           let node = Node(value:, left: Leaf, right:)
           user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
         }
-        True, False -> {
-          let assert [left, ..remaining] = result
-          let node = Node(value:, left:, right: Leaf)
-          user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
-        }
-        True, True -> {
+    [BuildBothNode(value), ..stack] -> {
           let assert [right, left, ..remaining] = result
           let node = Node(value:, left:, right:)
           user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
-        }
-      }
     }
   }
 }
@@ -268,7 +262,7 @@ fn standard_tree_to_user_tree(
   tree: Tree(a),
   adapter: Adapter(a, user_tree),
 ) -> user_tree {
-  standard_tree_to_user_tree_iter([Fresh(tree)], [], adapter)
+  standard_tree_to_user_tree_iter([Visit(tree)], [], adapter)
 }
 
 fn standard_tree_to_user_tree_iter(
@@ -282,55 +276,51 @@ fn standard_tree_to_user_tree_iter(
       user_tree
     }
 
-    [Fresh(Leaf), ..rest] -> {
+    [Visit(Leaf), ..rest] -> {
       let leaf = adapter.build_node(None, #(None, None))
       standard_tree_to_user_tree_iter(rest, [leaf, ..result], adapter)
     }
 
-    [Fresh(Node(value:, left:, right:)), ..rest] ->
+    [Visit(Node(value:, left:, right:)), ..rest] ->
       case left, right {
         Leaf, Leaf -> {
-          let stack = [Ready(value, False, False), ..rest]
+          let stack = [BuildBothLeaf(value), ..rest]
           standard_tree_to_user_tree_iter(stack, result, adapter)
         }
 
-        Leaf, Node(..) as r -> {
-          let stack = [Fresh(r), Ready(value, False, True), ..rest]
+        Node(..) as l, Leaf -> {
+          let stack = [Visit(l), BuildOnlyLeftNode(value), ..rest]
           standard_tree_to_user_tree_iter(stack, result, adapter)
         }
-        Node(..) as l, Leaf -> {
-          let stack = [Fresh(l), Ready(value, True, False), ..rest]
+        Leaf, Node(..) as r -> {
+          let stack = [Visit(r), BuildOnlyRightNode(value), ..rest]
           standard_tree_to_user_tree_iter(stack, result, adapter)
         }
         Node(..) as l, Node(..) as r -> {
-          let stack = [Fresh(l), Fresh(r), Ready(value, True, True), ..rest]
+          let stack = [Visit(l), Visit(r), BuildBothNode(value), ..rest]
           standard_tree_to_user_tree_iter(stack, result, adapter)
         }
       }
 
-    [Ready(value, is_left_present:, is_right_present:), ..stack] -> {
-      case is_left_present, is_right_present {
-        False, False -> {
+    [BuildBothLeaf(value), ..stack] -> {
           let node = adapter.build_node(Some(value), #(None, None))
           let result = [node, ..result]
           standard_tree_to_user_tree_iter(stack, result, adapter)
         }
-        False, True -> {
+    [BuildOnlyLeftNode(value), ..stack] -> {
+      let assert [left, ..remaining] = result
+      let node = adapter.build_node(Some(value), #(Some(left), None))
+      standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
+    }
+    [BuildOnlyRightNode(value), ..stack] -> {
           let assert [right, ..remaining] = result
           let node = adapter.build_node(Some(value), #(None, Some(right)))
           standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
         }
-        True, False -> {
-          let assert [left, ..remaining] = result
-          let node = adapter.build_node(Some(value), #(Some(left), None))
-          standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
-        }
-        True, True -> {
+    [BuildBothNode(value), ..stack] -> {
           let assert [right, left, ..remaining] = result
           let node = adapter.build_node(Some(value), #(Some(left), Some(right)))
           standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
-        }
-      }
     }
   }
 }

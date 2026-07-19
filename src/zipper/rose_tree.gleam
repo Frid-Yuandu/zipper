@@ -180,15 +180,15 @@ pub fn to_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
 }
 
 type Frame(a, tree_type) {
-  Fresh(tree_type)
-  Ready(value: a, children_count: Int)
+  Visit(tree_type)
+  Build(value: a, children_count: Int)
 }
 
 fn user_tree_to_standard_tree(
   tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> RoseTree(a) {
-  user_tree_to_standard_tree_iter([Fresh(tree)], [], adapter)
+  user_tree_to_standard_tree_iter([Visit(tree)], [], adapter)
 }
 
 fn user_tree_to_standard_tree_iter(
@@ -202,18 +202,18 @@ fn user_tree_to_standard_tree_iter(
       tree
     }
 
-    [Fresh(tree), ..rest] -> {
+    [Visit(tree), ..rest] -> {
       let value = adapter.get_value(tree)
       let children = adapter.get_children(tree)
 
       let children_count = list.length(children)
-      let current_frame = Ready(value:, children_count:)
+      let current_frame = Build(value:, children_count:)
       let stack =
-        list.map(children, Fresh) |> list.append([current_frame, ..rest])
+        list.map(children, Visit) |> list.append([current_frame, ..rest])
       user_tree_to_standard_tree_iter(stack, result, adapter)
     }
 
-    [Ready(value:, children_count:), ..stack] -> {
+    [Build(value:, children_count:), ..stack] -> {
       let #(children, remaining) = list.split(result, children_count)
       let node = RoseTree(value:, children: list.reverse(children))
       user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
@@ -225,7 +225,7 @@ fn standard_tree_to_user_tree(
   tree: RoseTree(a),
   adapter: Adapter(a, user_tree),
 ) -> user_tree {
-  standard_tree_to_user_tree_iter([Fresh(tree)], [], adapter)
+  standard_tree_to_user_tree_iter([Visit(tree)], [], adapter)
 }
 
 fn standard_tree_to_user_tree_iter(
@@ -239,15 +239,15 @@ fn standard_tree_to_user_tree_iter(
       user_tree
     }
 
-    [Fresh(RoseTree(value:, children:)), ..rest] -> {
+    [Visit(RoseTree(value:, children:)), ..rest] -> {
       let children_count = list.length(children)
-      let current_frame = Ready(value:, children_count:)
+      let current_frame = Build(value:, children_count:)
       let stack =
-        list.map(children, Fresh) |> list.append([current_frame, ..rest])
+        list.map(children, Visit) |> list.append([current_frame, ..rest])
       standard_tree_to_user_tree_iter(stack, result, adapter)
     }
 
-    [Ready(value:, children_count:), ..stack] -> {
+    [Build(value:, children_count:), ..stack] -> {
       let #(children, remaining) = list.split(result, children_count)
       let node = adapter.build_node(value, list.reverse(children))
       standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
