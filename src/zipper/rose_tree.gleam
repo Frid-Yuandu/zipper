@@ -220,9 +220,9 @@ fn standard_tree_to_user_tree(
 
 fn standard_tree_to_user_tree_iter(
   stack: List(Frame(a, RoseTree(a))),
-  result: List(user_rose_tree),
-  adapter: Adapter(a, user_rose_tree),
-) -> user_rose_tree {
+  result: List(user_tree),
+  adapter: Adapter(a, user_tree),
+) -> user_tree {
   case stack {
     [] -> {
       let assert [user_tree] = result
