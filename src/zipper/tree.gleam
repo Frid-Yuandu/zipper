@@ -1,17 +1,11 @@
-//// A functional zipper data structure for binary trees.
+//// Focused navigation and local mutation for binary trees.
 ////
-//// This module provides tools to navigate and modify binary tree structures
-//// efficiently. The zipper makes it easy to move up, down, and sideways
-//// in a tree and to perform local modifications without traversing the
-//// entire tree.
+//// All navigation and edit operations are O(1).
+//// Reconstructing the full tree via `to_standard_tree` or `go_to_root` walks the
+//// navigation path and takes O(d) where d is the depth of the current focus.
+//// Full-tree conversion round-trips (`from_tree`, `to_tree`) are O(n).
 ////
-//// Most navigation and local modification operations are $O(1)$. Operations
-//// that convert from or to a full tree structure are $O(n)$, where $n$ is the
-//// number of nodes in the tree. Reconstructing the tree by navigating to the
-//// root is $O(d)$, where $d$ is the depth of the current focus.
-////
-//// It supports both a standard `Tree` type and can be adapted to work with
-//// any user-defined binary tree structure via an `Adapter`.
+//// Use an [`Adapter`](#Adapter) to operate on any user-defined binary tree shape.
 ////
 //// ## Usage
 //// ```gleam
@@ -33,12 +27,6 @@
 
 import gleam/option.{type Option, None, Some}
 
-// pub type TraverseOrder {
-//   PreOrder
-//   InOrder
-//   PostOrder
-// }
-
 /// A binary tree data structure.
 ///
 /// - `Leaf`: Represents an empty tree or terminal node
@@ -50,21 +38,27 @@ pub type Tree(a) {
 
 /// Adapter for converting between a user-defined tree type and the standard tree type.
 ///
-/// The adapter provides functions to convert between a user-defined tree structure
-/// and the standard binary tree representation used by the zipper.
+/// The adapter bridges between a user-defined binary tree and the zipper's
+/// standard `Tree(a)` representation. It defines how to decompose user tree
+/// nodes into values and subtrees (`get_value`, `get_children`) and how to
+/// reconstruct them (`build_node`).
 ///
-/// - `get_value`: Extracts the node value from a user tree node. Returns `None` for
-///   leaf nodes, which correspond to the standard tree's `Leaf` constructor.
-/// - `get_children`: Returns a tuple `#(left, right)` where `left` and `right` are
-///   optional user tree nodes representing the left and right subtrees respectively.
-/// - `build_node`: Constructs a user tree node from an optional value and a tuple
-///   of optional user tree subtrees. A `None` value corresponds to a leaf node.
+/// ## Leaf node contract
 ///
-/// The mapping between user tree nodes and standard tree nodes is:
-/// - User tree node with `None` value ↔ Standard tree `Leaf`
-/// - User tree node with `Some(value)` ↔ Standard tree `Node(value, left, right)`
-/// - The tuple `#(left, right)` in both directions represents left and right
-///   user tree subtrees
+/// A leaf node is identified by `get_value` returning `None`. When this happens:
+/// - `get_children` MUST return `#(None, None)`, otherwise a panic will occur.
+/// - Conversely, `build_node(None, #(None, None))` MUST reconstruct the
+///   user-defined leaf node.
+///
+/// ## Fields
+///
+/// - `get_value`: Extracts the node value. Returns `Some(value)` for data-bearing
+///   nodes, or `None` for leaf nodes.
+/// - `get_children`: Returns `#(opt_left, opt_right)` — the left and right
+///   subtrees, each `None` when the corresponding child is a leaf.
+/// - `build_node`: Reconstructs a user tree node. Receives `Some(value)` to
+///   build a data-bearing node, or `None` (always accompanied by
+///   `#(None, None)`) to build a leaf node.
 pub type Adapter(a, user_tree) {
   Adapter(
     get_value: fn(user_tree) -> Option(a),
@@ -136,41 +130,7 @@ pub fn to_standard_tree(zipper: Zipper(a)) -> Tree(a) {
   }
 }
 
-/// Converts a user-defined tree to a standard binary tree using an adapter.
-///
-/// This internal function recursively converts a user tree structure to the
-/// standard tree representation used by the zipper.
-fn user_tree_to_standard_tree(
-  users_tree: user_tree,
-  adapter: Adapter(a, user_tree),
-) -> Tree(a) {
-  let value = adapter.get_value(users_tree)
-  let children = adapter.get_children(users_tree)
-  case value, children {
-    None, _ -> Leaf
-    Some(value), #(None, None) -> Node(value:, left: Leaf, right: Leaf)
-    Some(value), #(Some(left), None) ->
-      Node(value:, left: user_tree_to_standard_tree(left, adapter), right: Leaf)
-    Some(value), #(None, Some(right)) ->
-      Node(
-        value:,
-        left: Leaf,
-        right: user_tree_to_standard_tree(right, adapter),
-      )
-    Some(value), #(Some(left), Some(right)) ->
-      Node(
-        value:,
-        left: user_tree_to_standard_tree(left, adapter),
-        right: user_tree_to_standard_tree(right, adapter),
-      )
-  }
-}
-
 /// Creates a zipper from a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the user-defined tree to the
-/// standard tree representation. For very deep or skewed trees this conversion
-/// can exhaust the call stack on both the Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
@@ -182,48 +142,14 @@ fn user_tree_to_standard_tree(
 /// // => Ok(root_value)
 /// ```
 pub fn from_tree(
-  users_tree: user_tree,
+  user_tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> Zipper(a) {
-  user_tree_to_standard_tree(users_tree, adapter)
+  user_tree_to_standard_tree(user_tree, adapter)
   |> from_standard_tree
 }
 
-/// Converts a standard binary tree to a user-defined tree using an adapter.
-///
-/// This internal function converts the standard tree representation back to
-/// the user's tree structure using the provided adapter.
-fn standard_tree_to_user_tree(
-  tree: Tree(a),
-  adapter: Adapter(a, user_tree),
-) -> user_tree {
-  let #(value, children) = case tree {
-    Leaf -> #(None, #(None, None))
-    Node(value:, left: Leaf, right: Leaf) -> #(Some(value), #(None, None))
-    Node(value:, left:, right: Leaf) -> #(
-      Some(value),
-      #(Some(standard_tree_to_user_tree(left, adapter)), None),
-    )
-    Node(value:, left: Leaf, right:) -> #(
-      Some(value),
-      #(None, Some(standard_tree_to_user_tree(right, adapter))),
-    )
-    Node(value:, left:, right:) -> #(
-      Some(value),
-      #(
-        Some(standard_tree_to_user_tree(left, adapter)),
-        Some(standard_tree_to_user_tree(right, adapter)),
-      ),
-    )
-  }
-  adapter.build_node(value, children)
-}
-
 /// Converts a zipper to a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the standard tree to the
-/// user-defined tree representation. For very deep or skewed trees this conversion
-/// can exhaust the call stack on both the Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
@@ -235,6 +161,170 @@ fn standard_tree_to_user_tree(
 pub fn to_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
   to_standard_tree(zipper)
   |> standard_tree_to_user_tree(adapter)
+}
+
+type Frame(a, tree_type) {
+  Visit(tree_type)
+  BuildBothLeaf(a)
+  BuildOnlyLeftNode(a)
+  BuildOnlyRightNode(a)
+  BuildBothNode(a)
+}
+
+/// Converts a user-defined tree to a standard binary tree using an adapter.
+///
+/// This internal function recursively converts a user tree structure to the
+/// standard tree representation used by the zipper.
+fn user_tree_to_standard_tree(
+  user_tree: user_tree,
+  adapter: Adapter(a, user_tree),
+) -> Tree(a) {
+  user_tree_to_standard_tree_iter([Visit(user_tree)], [], adapter)
+}
+
+fn user_tree_to_standard_tree_iter(
+  stack: List(Frame(a, user_tree)),
+  result: List(Tree(a)),
+  adapter: Adapter(a, user_tree),
+) -> Tree(a) {
+  case stack {
+    [] -> {
+      let assert [tree] = result
+        as "DFS invariant broken: empty stack should have exactly 1 result element"
+      tree
+    }
+
+    [Visit(user_tree), ..rest] -> {
+      let value = adapter.get_value(user_tree)
+      let children = adapter.get_children(user_tree)
+      case value, children {
+        // leaf node
+        None, #(None, None) ->
+          user_tree_to_standard_tree_iter(rest, [Leaf, ..result], adapter)
+        None, #(_, _) ->
+          panic as "leaf node contract violated:
+`get_value` returned `None` but `get_children` did not return `#(None, None)`.
+When a node has no value (is a leaf), it must also have no children."
+
+        Some(value), #(None, None) -> {
+          let stack = [BuildBothLeaf(value), ..rest]
+          user_tree_to_standard_tree_iter(stack, result, adapter)
+        }
+        Some(value), #(Some(left), None) -> {
+          let stack = [Visit(left), BuildOnlyLeftNode(value), ..rest]
+          user_tree_to_standard_tree_iter(stack, result, adapter)
+        }
+        Some(value), #(None, Some(right)) -> {
+          let stack = [Visit(right), BuildOnlyRightNode(value), ..rest]
+          user_tree_to_standard_tree_iter(stack, result, adapter)
+        }
+        Some(value), #(Some(left), Some(right)) -> {
+          // push stack: left -> right -> root
+          // consume subtree: root -> right -> left
+          let stack = [Visit(left), Visit(right), BuildBothNode(value), ..rest]
+          user_tree_to_standard_tree_iter(stack, result, adapter)
+        }
+      }
+    }
+
+    [BuildBothLeaf(value), ..stack] -> {
+      let node = Node(value:, left: Leaf, right: Leaf)
+      user_tree_to_standard_tree_iter(stack, [node, ..result], adapter)
+    }
+    [BuildOnlyLeftNode(value), ..stack] -> {
+      let assert [left, ..remaining] = result
+        as "DFS invariant broken: expected left subtree in result, but result is empty"
+      let node = Node(value:, left:, right: Leaf)
+      user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
+    }
+    [BuildOnlyRightNode(value), ..stack] -> {
+      let assert [right, ..remaining] = result
+        as "DFS invariant broken: expected right subtree in result, but result is empty"
+      let node = Node(value:, left: Leaf, right:)
+      user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
+    }
+    [BuildBothNode(value), ..stack] -> {
+      let assert [right, left, ..remaining] = result
+        as "DFS invariant broken: expected 2 subtrees in result, but found fewer than 2"
+      let node = Node(value:, left:, right:)
+      user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
+    }
+  }
+}
+
+/// Converts a standard binary tree to a user-defined tree using an adapter.
+///
+/// This internal function converts the standard tree representation back to
+/// the user's tree structure using the provided adapter.
+fn standard_tree_to_user_tree(
+  tree: Tree(a),
+  adapter: Adapter(a, user_tree),
+) -> user_tree {
+  standard_tree_to_user_tree_iter([Visit(tree)], [], adapter)
+}
+
+fn standard_tree_to_user_tree_iter(
+  stack: List(Frame(a, Tree(a))),
+  result: List(user_tree),
+  adapter: Adapter(a, user_tree),
+) -> user_tree {
+  case stack {
+    [] -> {
+      let assert [user_tree] = result
+        as "DFS invariant broken: empty stack should have exactly 1 result element"
+      user_tree
+    }
+
+    [Visit(Leaf), ..rest] -> {
+      let leaf = adapter.build_node(None, #(None, None))
+      standard_tree_to_user_tree_iter(rest, [leaf, ..result], adapter)
+    }
+
+    [Visit(Node(value:, left:, right:)), ..rest] ->
+      case left, right {
+        Leaf, Leaf -> {
+          let stack = [BuildBothLeaf(value), ..rest]
+          standard_tree_to_user_tree_iter(stack, result, adapter)
+        }
+
+        Node(..) as l, Leaf -> {
+          let stack = [Visit(l), BuildOnlyLeftNode(value), ..rest]
+          standard_tree_to_user_tree_iter(stack, result, adapter)
+        }
+        Leaf, Node(..) as r -> {
+          let stack = [Visit(r), BuildOnlyRightNode(value), ..rest]
+          standard_tree_to_user_tree_iter(stack, result, adapter)
+        }
+        Node(..) as l, Node(..) as r -> {
+          let stack = [Visit(l), Visit(r), BuildBothNode(value), ..rest]
+          standard_tree_to_user_tree_iter(stack, result, adapter)
+        }
+      }
+
+    [BuildBothLeaf(value), ..stack] -> {
+      let node = adapter.build_node(Some(value), #(None, None))
+      let result = [node, ..result]
+      standard_tree_to_user_tree_iter(stack, result, adapter)
+    }
+    [BuildOnlyLeftNode(value), ..stack] -> {
+      let assert [left, ..remaining] = result
+        as "DFS invariant broken: expected left subtree in result, but result is empty"
+      let node = adapter.build_node(Some(value), #(Some(left), None))
+      standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
+    }
+    [BuildOnlyRightNode(value), ..stack] -> {
+      let assert [right, ..remaining] = result
+        as "DFS invariant broken: expected right subtree in result, but result is empty"
+      let node = adapter.build_node(Some(value), #(None, Some(right)))
+      standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
+    }
+    [BuildBothNode(value), ..stack] -> {
+      let assert [right, left, ..remaining] = result
+        as "DFS invariant broken: expected 2 subtrees in result, but found fewer than 2"
+      let node = adapter.build_node(Some(value), #(Some(left), Some(right)))
+      standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
+    }
+  }
 }
 
 /// Gets the value of the current focus node.
@@ -273,10 +363,6 @@ pub fn get_standard_tree(zipper: Zipper(a)) -> Tree(a) {
 }
 
 /// Gets the current focus subtree as a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the standard focus tree to the
-/// user-defined tree representation. For very deep or skewed trees this conversion
-/// can exhaust the call stack on both the Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
@@ -337,10 +423,6 @@ pub fn set_standard_tree(zipper: Zipper(a), tree: Tree(a)) -> Zipper(a) {
 /// This replaces the entire focused subtree with the provided user tree
 /// after converting it to the standard tree representation.
 ///
-/// **Warning:** This function recursively converts the user-defined subtree to the
-/// standard tree representation. For very deep or skewed trees this conversion
-/// can exhaust the call stack on both the Erlang and JavaScript targets.
-///
 /// ## Examples
 /// ```gleam
 /// // Given a `zipper`, a `my_subtree` of a user-defined type,
@@ -351,10 +433,10 @@ pub fn set_standard_tree(zipper: Zipper(a), tree: Tree(a)) -> Zipper(a) {
 /// ```
 pub fn set_tree(
   zipper: Zipper(a),
-  users_tree: user_tree,
+  user_tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> Zipper(a) {
-  let tree = user_tree_to_standard_tree(users_tree, adapter)
+  let tree = user_tree_to_standard_tree(user_tree, adapter)
   Zipper(..zipper, focus: tree)
 }
 

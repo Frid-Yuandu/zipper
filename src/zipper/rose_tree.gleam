@@ -1,24 +1,9 @@
-//// A functional zipper for rose trees (multi-way trees).
+//// A zipper for navigating and locally mutating rose trees.
 ////
-//// This module provides tools to navigate and modify rose tree structures
-//// efficiently. The zipper makes it easy to move up, down, and sideways
-//// in a tree and to perform local modifications without traversing the
-//// entire tree.
+//// Most navigation and local edit operations are O(1).
+//// Full-tree conversion round-trips (`from_tree`, `to_tree`) are O(n).
 ////
-//// Most navigation and local modification operations are $O(1)$. Going up
-//// the tree is $O(k)$, where $k$ is the number of left siblings of the
-//// current node. Insert children at the last position is $O(d)$, where $d$ is
-//// the number of children. Operations that convert from or to a full tree
-//// structure are $O(n)$, where $n$ is the number of nodes in the tree.
-////
-//// It supports both a standard `RoseTree` type and can be adapted to work with
-//// any user-defined rose tree structure via an `Adapter`.
-////
-//// Unlike binary trees, rose trees do not have a separate concept of a leaf node;
-//// a node with an empty list of children is considered a leaf. This distinction
-//// leads to some differences in the API compared to the `zipper/tree` module.
-//// For example, `get_value` always succeeds because every location in a rose
-//// tree zipper has a value.
+//// Use an [`Adapter`](#Adapter) to operate on any user-defined rose tree shape.
 ////
 //// ## Usage
 //// ```gleam
@@ -53,18 +38,27 @@ pub type RoseTree(a) {
 
 /// Adapter for converting between a user-defined tree type and the standard rose tree type.
 ///
-/// The adapter provides functions to convert between a user-defined tree structure
-/// and the standard rose tree representation used by the zipper.
+/// The adapter bridges between a user-defined rose tree and the zipper's
+/// standard `RoseTree(a)` representation. It defines how to decompose user tree
+/// nodes into values and subtrees (`get_value`, `get_children`) and how to
+/// reconstruct them (`build_node`).
 ///
-/// - `get_value`: Extracts the node value from a user tree node.
-/// - `get_children`: Returns a list of user-defined child subtrees.
-/// - `build_node`: Constructs a user tree node from a value and a list of user-defined
-///   child subtrees.
-pub type Adapter(a, user_rose_tree) {
+/// Unlike the binary tree adapter, there is no leaf node contract — every node
+/// carries a value. A node with no children is a leaf (empty list).
+///
+/// ## Fields
+///
+/// - `get_value`: Extracts the node value. Unlike binary trees, every node has
+///   a value, so this always returns a plain `a`.
+/// - `get_children`: Returns the list of child subtrees. An empty list means the
+///   node is a leaf.
+/// - `build_node`: Reconstructs a user tree node from a value and list of
+///   children. The children list may be empty (leaf node).
+pub type Adapter(a, user_tree) {
   Adapter(
-    get_value: fn(user_rose_tree) -> a,
-    get_children: fn(user_rose_tree) -> List(user_rose_tree),
-    build_node: fn(a, List(user_rose_tree)) -> user_rose_tree,
+    get_value: fn(user_tree) -> a,
+    get_children: fn(user_tree) -> List(user_tree),
+    build_node: fn(a, List(user_tree)) -> user_tree,
   )
 }
 
@@ -138,11 +132,6 @@ pub fn to_standard_tree(zipper: Zipper(a)) -> RoseTree(a) {
 
 /// Creates a zipper from a user-defined tree using an adapter.
 ///
-/// **Warning:** This function recursively converts the user-defined tree to the
-/// standard tree representation. For very deep trees, such as a long chain of
-/// single-child nodes, this conversion can exhaust the call stack on both the
-/// Erlang and JavaScript targets.
-///
 /// ## Examples
 /// ```gleam
 /// // Given a user-defined tree `my_tree` and a corresponding `adapter`:
@@ -153,19 +142,14 @@ pub fn to_standard_tree(zipper: Zipper(a)) -> RoseTree(a) {
 /// // => root_value
 /// ```
 pub fn from_tree(
-  users_tree: user_tree,
+  user_tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> Zipper(a) {
-  user_tree_to_standard_tree(users_tree, adapter)
+  user_tree_to_standard_tree(user_tree, adapter)
   |> from_standard_tree
 }
 
 /// Converts a zipper back to a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the standard tree to the
-/// user-defined tree representation. For very deep trees, such as a long chain of
-/// single-child nodes, this conversion can exhaust the call stack on both the
-/// Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
@@ -179,24 +163,82 @@ pub fn to_tree(zipper: Zipper(a), adapter: Adapter(a, user_tree)) -> user_tree {
   standard_tree_to_user_tree(tree, adapter)
 }
 
-fn standard_tree_to_user_tree(
-  tree: RoseTree(a),
-  adapter: Adapter(a, user_tree),
-) -> user_tree {
-  let user_children =
-    list.map(tree.children, standard_tree_to_user_tree(_, adapter))
-  adapter.build_node(tree.value, user_children)
+type Frame(a, tree_type) {
+  Visit(tree_type)
+  Build(value: a, children_count: Int)
 }
 
 fn user_tree_to_standard_tree(
   tree: user_tree,
   adapter: Adapter(a, user_tree),
 ) -> RoseTree(a) {
-  let value = adapter.get_value(tree)
-  let children =
-    adapter.get_children(tree)
-    |> list.map(user_tree_to_standard_tree(_, adapter))
-  RoseTree(value, children)
+  user_tree_to_standard_tree_iter([Visit(tree)], [], adapter)
+}
+
+fn user_tree_to_standard_tree_iter(
+  stack: List(Frame(a, user_tree)),
+  result: List(RoseTree(a)),
+  adapter: Adapter(a, user_tree),
+) -> RoseTree(a) {
+  case stack {
+    [] -> {
+      let assert [tree] = result
+        as "DFS invariant broken: empty stack should have exactly 1 result element"
+      tree
+    }
+
+    [Visit(tree), ..rest] -> {
+      let value = adapter.get_value(tree)
+      let children = adapter.get_children(tree)
+
+      let children_count = list.length(children)
+      let current_frame = Build(value:, children_count:)
+      let stack =
+        list.map(children, Visit) |> list.append([current_frame, ..rest])
+      user_tree_to_standard_tree_iter(stack, result, adapter)
+    }
+
+    [Build(value:, children_count:), ..stack] -> {
+      let #(children, remaining) = list.split(result, children_count)
+      let node = RoseTree(value:, children: list.reverse(children))
+      user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
+    }
+  }
+}
+
+fn standard_tree_to_user_tree(
+  tree: RoseTree(a),
+  adapter: Adapter(a, user_tree),
+) -> user_tree {
+  standard_tree_to_user_tree_iter([Visit(tree)], [], adapter)
+}
+
+fn standard_tree_to_user_tree_iter(
+  stack: List(Frame(a, RoseTree(a))),
+  result: List(user_tree),
+  adapter: Adapter(a, user_tree),
+) -> user_tree {
+  case stack {
+    [] -> {
+      let assert [user_tree] = result
+        as "DFS invariant broken: empty stack should have exactly 1 result element"
+      user_tree
+    }
+
+    [Visit(RoseTree(value:, children:)), ..rest] -> {
+      let children_count = list.length(children)
+      let current_frame = Build(value:, children_count:)
+      let stack =
+        list.map(children, Visit) |> list.append([current_frame, ..rest])
+      standard_tree_to_user_tree_iter(stack, result, adapter)
+    }
+
+    [Build(value:, children_count:), ..stack] -> {
+      let #(children, remaining) = list.split(result, children_count)
+      let node = adapter.build_node(value, list.reverse(children))
+      standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
+    }
+  }
 }
 
 /// Moves the focus to the left sibling of the current node.
@@ -393,11 +435,6 @@ pub fn get_standard_tree(zipper: Zipper(a)) -> RoseTree(a) {
 
 /// Gets the current focus subtree as a user-defined tree using an adapter.
 ///
-/// **Warning:** This function recursively converts the standard focus tree to the
-/// user-defined tree representation. For very deep trees, such as a long chain of
-/// single-child nodes, this conversion can exhaust the call stack on both the
-/// Erlang and JavaScript targets.
-///
 /// ## Examples
 /// ```gleam
 /// // Given a `zipper` and a corresponding `adapter` for a custom tree type:
@@ -444,11 +481,6 @@ pub fn set_standard_tree(zipper: Zipper(a), tree: RoseTree(a)) -> Zipper(a) {
 }
 
 /// Sets the current focus subtree to a user-defined tree using an adapter.
-///
-/// **Warning:** This function recursively converts the user-defined subtree to the
-/// standard tree representation. For very deep trees, such as a long chain of
-/// single-child nodes, this conversion can exhaust the call stack on both the
-/// Erlang and JavaScript targets.
 ///
 /// ## Examples
 /// ```gleam
