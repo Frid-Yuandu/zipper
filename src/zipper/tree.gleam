@@ -1,17 +1,11 @@
-//// A functional zipper data structure for binary trees.
+//// Focused navigation and local mutation for binary trees.
 ////
-//// This module provides tools to navigate and modify binary tree structures
-//// efficiently. The zipper makes it easy to move up, down, and sideways
-//// in a tree and to perform local modifications without traversing the
-//// entire tree.
+//// All navigation and edit operations are O(1).
+//// Reconstructing the full tree via `to_standard_tree` or `go_to_root` walks the
+//// navigation path and takes O(d) where d is the depth of the current focus.
+//// Full-tree conversion round-trips (`from_tree`, `to_tree`) are O(n).
 ////
-//// Most navigation and local modification operations are $O(1)$. Operations
-//// that convert from or to a full tree structure are $O(n)$, where $n$ is the
-//// number of nodes in the tree. Reconstructing the tree by navigating to the
-//// root is $O(d)$, where $d$ is the depth of the current focus.
-////
-//// It supports both a standard `Tree` type and can be adapted to work with
-//// any user-defined binary tree structure via an `Adapter`.
+//// Use an [`Adapter`](#Adapter) to operate on any user-defined binary tree shape.
 ////
 //// ## Usage
 //// ```gleam
@@ -44,21 +38,27 @@ pub type Tree(a) {
 
 /// Adapter for converting between a user-defined tree type and the standard tree type.
 ///
-/// The adapter provides functions to convert between a user-defined tree structure
-/// and the standard binary tree representation used by the zipper.
+/// The adapter bridges between a user-defined binary tree and the zipper's
+/// standard `Tree(a)` representation. It defines how to decompose user tree
+/// nodes into values and subtrees (`get_value`, `get_children`) and how to
+/// reconstruct them (`build_node`).
 ///
-/// - `get_value`: Extracts the node value from a user tree node. Returns `None` for
-///   leaf nodes, which correspond to the standard tree's `Leaf` constructor.
-/// - `get_children`: Returns a tuple `#(left, right)` where `left` and `right` are
-///   optional user tree nodes representing the left and right subtrees respectively.
-/// - `build_node`: Constructs a user tree node from an optional value and a tuple
-///   of optional user tree subtrees. A `None` value corresponds to a leaf node.
+/// ## Leaf node contract
 ///
-/// The mapping between user tree nodes and standard tree nodes is:
-/// - User tree node with `None` value ↔ Standard tree `Leaf`
-/// - User tree node with `Some(value)` ↔ Standard tree `Node(value, left, right)`
-/// - The tuple `#(left, right)` in both directions represents left and right
-///   user tree subtrees
+/// A leaf node is identified by `get_value` returning `None`. When this happens:
+/// - `get_children` MUST return `#(None, None)`, otherwise a panic will occur.
+/// - Conversely, `build_node(None, #(None, None))` MUST reconstruct the
+///   user-defined leaf node.
+///
+/// ## Fields
+///
+/// - `get_value`: Extracts the node value. Returns `Some(value)` for data-bearing
+///   nodes, or `None` for leaf nodes.
+/// - `get_children`: Returns `#(opt_left, opt_right)` — the left and right
+///   subtrees, each `None` when the corresponding child is a leaf.
+/// - `build_node`: Reconstructs a user tree node. Receives `Some(value)` to
+///   build a data-bearing node, or `None` (always accompanied by
+///   `#(None, None)`) to build a leaf node.
 pub type Adapter(a, user_tree) {
   Adapter(
     get_value: fn(user_tree) -> Option(a),

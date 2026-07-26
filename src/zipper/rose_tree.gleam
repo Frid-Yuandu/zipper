@@ -1,24 +1,9 @@
-//// A functional zipper for rose trees (multi-way trees).
+//// A zipper for navigating and locally mutating rose trees.
 ////
-//// This module provides tools to navigate and modify rose tree structures
-//// efficiently. The zipper makes it easy to move up, down, and sideways
-//// in a tree and to perform local modifications without traversing the
-//// entire tree.
+//// Most navigation and local edit operations are O(1).
+//// Full-tree conversion round-trips (`from_tree`, `to_tree`) are O(n).
 ////
-//// Most navigation and local modification operations are $O(1)$. Going up
-//// the tree is $O(k)$, where $k$ is the number of left siblings of the
-//// current node. Insert children at the last position is $O(d)$, where $d$ is
-//// the number of children. Operations that convert from or to a full tree
-//// structure are $O(n)$, where $n$ is the number of nodes in the tree.
-////
-//// It supports both a standard `RoseTree` type and can be adapted to work with
-//// any user-defined rose tree structure via an `Adapter`.
-////
-//// Unlike binary trees, rose trees do not have a separate concept of a leaf node;
-//// a node with an empty list of children is considered a leaf. This distinction
-//// leads to some differences in the API compared to the `zipper/tree` module.
-//// For example, `get_value` always succeeds because every location in a rose
-//// tree zipper has a value.
+//// Use an [`Adapter`](#Adapter) to operate on any user-defined rose tree shape.
 ////
 //// ## Usage
 //// ```gleam
@@ -53,13 +38,22 @@ pub type RoseTree(a) {
 
 /// Adapter for converting between a user-defined tree type and the standard rose tree type.
 ///
-/// The adapter provides functions to convert between a user-defined tree structure
-/// and the standard rose tree representation used by the zipper.
+/// The adapter bridges between a user-defined rose tree and the zipper's
+/// standard `RoseTree(a)` representation. It defines how to decompose user tree
+/// nodes into values and subtrees (`get_value`, `get_children`) and how to
+/// reconstruct them (`build_node`).
 ///
-/// - `get_value`: Extracts the node value from a user tree node.
-/// - `get_children`: Returns a list of user-defined child subtrees.
-/// - `build_node`: Constructs a user tree node from a value and a list of user-defined
-///   child subtrees.
+/// Unlike the binary tree adapter, there is no leaf node contract — every node
+/// carries a value. A node with no children is a leaf (empty list).
+///
+/// ## Fields
+///
+/// - `get_value`: Extracts the node value. Unlike binary trees, every node has
+///   a value, so this always returns a plain `a`.
+/// - `get_children`: Returns the list of child subtrees. An empty list means the
+///   node is a leaf.
+/// - `build_node`: Reconstructs a user tree node from a value and list of
+///   children. The children list may be empty (leaf node).
 pub type Adapter(a, user_tree) {
   Adapter(
     get_value: fn(user_tree) -> a,
