@@ -189,6 +189,7 @@ fn user_tree_to_standard_tree_iter(
   case stack {
     [] -> {
       let assert [tree] = result
+        as "DFS invariant broken: empty stack should have exactly 1 result element"
       tree
     }
 
@@ -226,6 +227,7 @@ fn standard_tree_to_user_tree_iter(
   case stack {
     [] -> {
       let assert [user_tree] = result
+        as "DFS invariant broken: empty stack should have exactly 1 result element"
       user_tree
     }
 

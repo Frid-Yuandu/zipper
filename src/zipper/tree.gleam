@@ -190,6 +190,7 @@ fn user_tree_to_standard_tree_iter(
   case stack {
     [] -> {
       let assert [tree] = result
+        as "DFS invariant broken: empty stack should have exactly 1 result element"
       tree
     }
 
@@ -201,7 +202,9 @@ fn user_tree_to_standard_tree_iter(
         None, #(None, None) ->
           user_tree_to_standard_tree_iter(rest, [Leaf, ..result], adapter)
         None, #(_, _) ->
-          panic as "Node return `None` value must return `#(None, None)` for children"
+          panic as "leaf node contract violated:
+`get_value` returned `None` but `get_children` did not return `#(None, None)`.
+When a node has no value (is a leaf), it must also have no children."
 
         Some(value), #(None, None) -> {
           let stack = [BuildBothLeaf(value), ..rest]
@@ -230,16 +233,19 @@ fn user_tree_to_standard_tree_iter(
     }
     [BuildOnlyLeftNode(value), ..stack] -> {
       let assert [left, ..remaining] = result
+        as "DFS invariant broken: expected left subtree in result, but result is empty"
       let node = Node(value:, left:, right: Leaf)
       user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
     }
     [BuildOnlyRightNode(value), ..stack] -> {
       let assert [right, ..remaining] = result
+        as "DFS invariant broken: expected right subtree in result, but result is empty"
       let node = Node(value:, left: Leaf, right:)
       user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
     }
     [BuildBothNode(value), ..stack] -> {
       let assert [right, left, ..remaining] = result
+        as "DFS invariant broken: expected 2 subtrees in result, but found fewer than 2"
       let node = Node(value:, left:, right:)
       user_tree_to_standard_tree_iter(stack, [node, ..remaining], adapter)
     }
@@ -265,6 +271,7 @@ fn standard_tree_to_user_tree_iter(
   case stack {
     [] -> {
       let assert [user_tree] = result
+        as "DFS invariant broken: empty stack should have exactly 1 result element"
       user_tree
     }
 
@@ -301,16 +308,19 @@ fn standard_tree_to_user_tree_iter(
     }
     [BuildOnlyLeftNode(value), ..stack] -> {
       let assert [left, ..remaining] = result
+        as "DFS invariant broken: expected left subtree in result, but result is empty"
       let node = adapter.build_node(Some(value), #(Some(left), None))
       standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
     }
     [BuildOnlyRightNode(value), ..stack] -> {
       let assert [right, ..remaining] = result
+        as "DFS invariant broken: expected right subtree in result, but result is empty"
       let node = adapter.build_node(Some(value), #(None, Some(right)))
       standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
     }
     [BuildBothNode(value), ..stack] -> {
       let assert [right, left, ..remaining] = result
+        as "DFS invariant broken: expected 2 subtrees in result, but found fewer than 2"
       let node = adapter.build_node(Some(value), #(Some(left), Some(right)))
       standard_tree_to_user_tree_iter(stack, [node, ..remaining], adapter)
     }
